@@ -153,7 +153,7 @@ export const APPLICATION_SOURCE_META: Record<
   example: {
     label: "A written example",
     meaning:
-      "This posting was written for practice by this app. It is not a real vacancy and no one is hiring for it.",
+      "You pasted this text for practice rather than from an opening you intend to send. It is not a real vacancy and no one is hiring for it.",
   },
 };
 

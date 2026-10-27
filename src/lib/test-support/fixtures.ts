@@ -14,6 +14,12 @@ import type {
 } from "@/lib/career/types";
 import type { SkillEvidenceRecord } from "@/lib/evidence/types";
 import type {
+  InterviewAttemptRecord,
+  InterviewTopic,
+  JobApplicationRecord,
+  MockInterviewRecord,
+} from "@/lib/interview/types";
+import type {
   ProjectMilestoneRecord,
   ProjectRecord,
 } from "@/lib/projects/types";
@@ -23,6 +29,11 @@ import {
   type RoadmapTask,
 } from "@/lib/roadmap/types";
 import type { LearningSessionRecord } from "@/lib/sessions/types";
+import type {
+  DraftBuiltFrom,
+  MaterialDraftRecord,
+  MaterialKind,
+} from "@/lib/materials/types";
 
 export function emptySummary(
   overrides: Partial<AssessmentSummary> = {},
@@ -331,6 +342,94 @@ export function makeCareerExperiment(
     completedAt: "2026-11-01T11:00:00.000Z",
     createdAt: "2026-11-01T10:00:00.000Z",
     updatedAt: "2026-11-01T11:00:00.000Z",
+    ...input,
+  };
+}
+
+export function makeInterviewAttempt(
+  input: Partial<InterviewAttemptRecord> & {
+    id: string;
+    questionId: string;
+    topic: InterviewTopic;
+  },
+): InterviewAttemptRecord {
+  return {
+    prompt: "Synthetic interview question.",
+    answerText: "Synthetic answer.",
+    rating: "covered",
+    skills: [],
+    interviewId: null,
+    createdAt: "2026-11-02T10:00:00.000Z",
+    ...input,
+  };
+}
+
+export function makeMockInterview(
+  input: Partial<MockInterviewRecord> & { id: string },
+): MockInterviewRecord {
+  return {
+    label: "Synthetic practice interview",
+    topics: ["sql"],
+    questionIds: [],
+    startedAt: "2026-11-02T10:00:00.000Z",
+    completedAt: "2026-11-02T10:45:00.000Z",
+    ...input,
+  };
+}
+
+export function makeJobApplication(
+  input: Partial<JobApplicationRecord> & { id: string },
+): JobApplicationRecord {
+  return {
+    company: "Synthetic Analytics Co",
+    roleTitle: "Synthetic Data Scientist",
+    jobUrl: null,
+    location: null,
+    sourceKind: "real",
+    status: "saved",
+    appliedOn: null,
+    nextAction: null,
+    nextActionOn: null,
+    skills: [],
+    description: "",
+    notes: "",
+    createdAt: "2026-11-02T10:00:00.000Z",
+    updatedAt: "2026-11-02T10:00:00.000Z",
+    ...input,
+  };
+}
+
+/** The counts a saved draft was written against, with nothing inferred. */
+export function makeDraftFingerprint(
+  input: Partial<DraftBuiltFrom> = {},
+): DraftBuiltFrom {
+  return {
+    savedAt: "2026-11-02T10:00:00.000Z",
+    latestProject: null,
+    completedProjects: 0,
+    linkedProjects: 0,
+    skillRecords: 0,
+    shownSkills: 0,
+    screenedSkills: 0,
+    finishedInterviews: 0,
+    testedRoles: 0,
+    assessmentTaken: false,
+    listableSkills: 0,
+    ...input,
+  };
+}
+
+export function makeMaterialDraft(
+  input: Partial<MaterialDraftRecord> & { id: string; kind: MaterialKind },
+): MaterialDraftRecord {
+  return {
+    content:
+      "A paragraph long enough for this app to accept as a document rather than a title, written by the tester and not by the app.",
+    targetRole: null,
+    applicationId: null,
+    builtFrom: makeDraftFingerprint(),
+    createdAt: "2026-11-02T10:00:00.000Z",
+    updatedAt: "2026-11-02T10:00:00.000Z",
     ...input,
   };
 }

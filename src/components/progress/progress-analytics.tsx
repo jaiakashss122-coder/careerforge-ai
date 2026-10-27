@@ -235,7 +235,8 @@ export function ProgressAnalyticsView({
     workspace.assessments.length > 0 ||
     workspace.roadmaps.length > 0 ||
     workspace.sessions.length > 0 ||
-    workspace.projects.length > 0;
+    workspace.projects.length > 0 ||
+    workspace.evidence.length > 0;
 
   const {
     nextAction,
@@ -323,7 +324,7 @@ export function ProgressAnalyticsView({
         <EmptyState
           icon={ChartColumn}
           title="Nothing measured yet"
-          description="This page has no numbers to show because no assessment, roadmap, session, or project is stored yet. Taking the assessment fills the skill lanes; starting sessions fills the study-time lane."
+          description="This page has no numbers to show because no assessment, roadmap, session, project, or skill record is stored yet. Taking the assessment fills the skill lanes; starting sessions fills the study-time lane; a finished practice interview fills the interview lane."
           action={
             <Link href="/assessment" className={buttonStyles({ size: "sm" })}>
               Take the assessment

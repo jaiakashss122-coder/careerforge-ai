@@ -3,6 +3,12 @@ import {
   getCareerPreferenceRecord,
   listCareerExperimentRecords,
 } from "@/lib/career/repository";
+import {
+  listInterviewAttemptRecords,
+  listJobApplicationRecords,
+  listMockInterviewRecords,
+} from "@/lib/interview/repository";
+import { listMaterialDraftRecords } from "@/lib/materials/repository";
 import { listSkillEvidenceRecords } from "@/lib/evidence/repository";
 import { listProjectRecords } from "@/lib/projects/repository";
 import { listRoadmapRecords } from "@/lib/roadmap/repository";
@@ -22,6 +28,10 @@ export async function loadServerWorkspace({
     evidence,
     careerExperiments,
     careerPreference,
+    mockInterviews,
+    interviewAttempts,
+    jobApplications,
+    materials,
   ] = await Promise.all([
     listAssessmentRecords({ includeAnswers: includeAssessmentAnswers }),
     listRoadmapRecords(),
@@ -30,6 +40,10 @@ export async function loadServerWorkspace({
     listSkillEvidenceRecords(),
     listCareerExperimentRecords(),
     getCareerPreferenceRecord(),
+    listMockInterviewRecords(),
+    listInterviewAttemptRecords(),
+    listJobApplicationRecords(),
+    listMaterialDraftRecords(),
   ]);
 
   return {
@@ -40,5 +54,9 @@ export async function loadServerWorkspace({
     evidence,
     careerExperiments,
     careerPreferences: careerPreference ? [careerPreference] : [],
+    mockInterviews,
+    interviewAttempts,
+    jobApplications,
+    materials,
   };
 }

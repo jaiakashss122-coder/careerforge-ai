@@ -6,7 +6,11 @@ import {
 import type { UserSkillEvidenceRow } from "@/lib/supabase/database.types";
 import { getAuthenticatedContext } from "@/lib/workspace/server";
 
-async function loadSkillSlugs(
+/**
+ * Maps a skill slug to its database id, so a writer can only ever attach a
+ * record to a skill this project's catalogue actually holds.
+ */
+export async function loadSkillIdBySlug(
   supabase: NonNullable<Awaited<ReturnType<typeof getAuthenticatedContext>>>["supabase"],
 ) {
   const { data, error } = await supabase.from("skills").select("id, slug");
@@ -16,7 +20,15 @@ async function loadSkillSlugs(
     return new Map<string, string>();
   }
 
-  return new Map((data ?? []).map((skill) => [skill.id, skill.slug]));
+  return new Map((data ?? []).map((skill) => [skill.slug, skill.id]));
+}
+
+async function loadSkillSlugs(
+  supabase: NonNullable<Awaited<ReturnType<typeof getAuthenticatedContext>>>["supabase"],
+) {
+  const idBySlug = await loadSkillIdBySlug(supabase);
+
+  return new Map([...idBySlug].map(([slug, id]) => [id, slug]));
 }
 
 function evidenceRowToRecord(

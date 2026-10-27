@@ -18,6 +18,7 @@ import {
   MemoryStorage,
 } from "@/lib/test-support/fixtures";
 import { getProjectTemplate } from "@/lib/projects/templates";
+import { createEmptyWorkspace } from "@/lib/workspace/types";
 
 const WEEKLY_HOURS = 10;
 
@@ -31,6 +32,7 @@ function setup(input: {
   });
 
   savePreviewWorkspace({
+    ...createEmptyWorkspace(),
     assessments: input.assessment
       ? [
           {

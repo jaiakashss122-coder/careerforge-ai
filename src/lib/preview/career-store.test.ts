@@ -14,6 +14,7 @@ import {
   MemoryStorage,
 } from "@/lib/test-support/fixtures";
 import { getCareerExperimentForTrack } from "@/lib/career/experiments";
+import { createEmptyWorkspace } from "@/lib/workspace/types";
 
 function setup() {
   vi.stubGlobal("window", {
@@ -22,6 +23,7 @@ function setup() {
   });
 
   savePreviewWorkspace({
+    ...createEmptyWorkspace(),
     assessments: [],
     roadmaps: [],
     sessions: [],

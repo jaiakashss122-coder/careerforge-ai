@@ -10,7 +10,11 @@ import {
   startPreviewSession,
 } from "@/lib/preview/workspace-store";
 import { getWeeklyProgress } from "@/lib/workspace/progress";
+import { createEmptyWorkspace } from "@/lib/workspace/types";
 import {
+  makeInterviewAttempt,
+  makeJobApplication,
+  makeMockInterview,
   makeProject,
   makeRoadmap,
   makeSession,
@@ -24,6 +28,7 @@ function setup(tasks = [makeTask({ id: "task-1" })]) {
     dispatchEvent: vi.fn(),
   });
   savePreviewWorkspace({
+    ...createEmptyWorkspace(),
     assessments: [],
     roadmaps: [makeRoadmap(tasks)],
     sessions: [],
@@ -53,33 +58,78 @@ afterEach(() => {
 
 describe("preview workspace parsing", () => {
   it("returns an empty workspace for missing or corrupt storage", () => {
-    expect(parsePreviewWorkspace(null)).toEqual({
-      assessments: [],
-      roadmaps: [],
-      sessions: [],
-      projects: [],
-      evidence: [],
-      careerExperiments: [],
-      careerPreferences: [],
-    });
-    expect(parsePreviewWorkspace("{")).toEqual({
-      assessments: [],
-      roadmaps: [],
-      sessions: [],
-      projects: [],
-      evidence: [],
-      careerExperiments: [],
-      careerPreferences: [],
-    });
-    expect(parsePreviewWorkspace("[]")).toEqual({
-      assessments: [],
-      roadmaps: [],
-      sessions: [],
-      projects: [],
-      evidence: [],
-      careerExperiments: [],
-      careerPreferences: [],
-    });
+    expect(parsePreviewWorkspace(null)).toEqual(createEmptyWorkspace());
+    expect(parsePreviewWorkspace("{")).toEqual(createEmptyWorkspace());
+    expect(parsePreviewWorkspace("[]")).toEqual(createEmptyWorkspace());
+  });
+
+  it("drops malformed interview records while keeping valid ones", () => {
+    const parsed = parsePreviewWorkspace(
+      JSON.stringify({
+        mockInterviews: [
+          makeMockInterview({
+            id: "interview-1",
+            questionIds: ["sql-group-by-select"],
+          }),
+          { id: "broken" },
+          {
+            id: "unknown-question",
+            label: "Asks about a question this app has",
+            topics: ["sql"],
+            questionIds: ["not-a-real-question"],
+            startedAt: "2026-11-02T10:00:00.000Z",
+            completedAt: null,
+          },
+        ],
+        interviewAttempts: [
+          makeInterviewAttempt({
+            id: "attempt-1",
+            questionId: "sql-group-by-select",
+            topic: "sql",
+            interviewId: "interview-1",
+          }),
+          {
+            id: "no-rating",
+            questionId: "sql-group-by-select",
+            topic: "sql",
+            prompt: "Synthetic interview question.",
+            answerText: "Synthetic answer.",
+            rating: "",
+            skills: [],
+            interviewId: "interview-1",
+            createdAt: "2026-11-02T10:05:00.000Z",
+          },
+          {
+            id: "unknown-question",
+            questionId: "not-a-real-question",
+            topic: "sql",
+            prompt: "Synthetic interview question.",
+            answerText: "Synthetic answer.",
+            rating: "covered",
+            skills: [],
+            interviewId: "interview-1",
+            createdAt: "2026-11-02T10:05:00.000Z",
+          },
+        ],
+        jobApplications: [
+          makeJobApplication({ id: "application-1" }),
+          {
+            ...makeJobApplication({ id: "application-2" }),
+            status: "hired",
+          },
+        ],
+      }),
+    );
+
+    expect(parsed.mockInterviews.map((interview) => interview.id)).toEqual([
+      "interview-1",
+    ]);
+    expect(parsed.interviewAttempts.map((attempt) => attempt.id)).toEqual([
+      "attempt-1",
+    ]);
+    expect(
+      parsed.jobApplications.map((application) => application.id),
+    ).toEqual(["application-1"]);
   });
 
   it("drops malformed records while keeping valid ones", () => {

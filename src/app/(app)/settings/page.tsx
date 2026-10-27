@@ -257,7 +257,7 @@ export default async function SettingsPage() {
                 <p className="text-sm font-medium text-foreground">
                   Delete account
                 </p>
-                <Badge variant="muted">Planned — Phase 6</Badge>
+                <Badge variant="muted">Planned — Phase 7</Badge>
               </div>
               <p className="text-xs leading-5 text-muted">
                 Full account deletion is not available yet, so no non-working

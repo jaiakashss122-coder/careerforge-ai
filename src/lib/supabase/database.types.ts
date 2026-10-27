@@ -467,6 +467,110 @@ export type CareerPreferenceInsert = {
   override_reason?: string | null;
 };
 
+export type JobApplicationRow = {
+  id: string;
+  user_id: string;
+  company: string;
+  role_title: string;
+  job_url: string | null;
+  location: string | null;
+  source_kind: string;
+  status: string;
+  applied_on: string | null;
+  next_action: string | null;
+  next_action_on: string | null;
+  skills: Json;
+  description: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type JobApplicationInsert = {
+  id?: string;
+  user_id: string;
+  company: string;
+  role_title: string;
+  job_url?: string | null;
+  location?: string | null;
+  source_kind?: string;
+  status?: string;
+  applied_on?: string | null;
+  next_action?: string | null;
+  next_action_on?: string | null;
+  skills?: Json;
+  description?: string;
+  notes?: string;
+};
+
+export type MockInterviewRow = {
+  id: string;
+  user_id: string;
+  label: string;
+  topics: Json;
+  question_ids: Json;
+  started_at: string;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type MockInterviewInsert = {
+  id?: string;
+  user_id: string;
+  label: string;
+  topics?: Json;
+  question_ids?: Json;
+  started_at?: string;
+  completed_at?: string | null;
+};
+
+export type InterviewAttemptRow = {
+  id: string;
+  user_id: string;
+  interview_id: string | null;
+  question_id: string;
+  topic: string;
+  prompt: string;
+  answer_text: string;
+  rating: string;
+  skills: Json;
+  created_at: string;
+};
+
+export type InterviewAttemptInsert = {
+  id?: string;
+  user_id: string;
+  interview_id?: string | null;
+  question_id: string;
+  topic: string;
+  prompt: string;
+  answer_text?: string;
+  rating: string;
+  skills?: Json;
+};
+
+export type ApplicationMaterialRow = {
+  id: string;
+  user_id: string;
+  kind: string;
+  content: string;
+  target_role: string;
+  application_id: string | null;
+  built_from: Json;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ApplicationMaterialInsert = {
+  id?: string;
+  user_id: string;
+  kind: string;
+  content?: string;
+  target_role?: string;
+  application_id?: string | null;
+  built_from?: Json;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -570,6 +674,30 @@ export type Database = {
         Row: CareerPreferenceRow;
         Insert: CareerPreferenceInsert;
         Update: Partial<CareerPreferenceInsert>;
+        Relationships: [];
+      };
+      job_applications: {
+        Row: JobApplicationRow;
+        Insert: JobApplicationInsert;
+        Update: Partial<JobApplicationInsert>;
+        Relationships: [];
+      };
+      mock_interviews: {
+        Row: MockInterviewRow;
+        Insert: MockInterviewInsert;
+        Update: Partial<MockInterviewInsert>;
+        Relationships: [];
+      };
+      interview_attempts: {
+        Row: InterviewAttemptRow;
+        Insert: InterviewAttemptInsert;
+        Update: Partial<InterviewAttemptInsert>;
+        Relationships: [];
+      };
+      application_materials: {
+        Row: ApplicationMaterialRow;
+        Insert: ApplicationMaterialInsert;
+        Update: Partial<ApplicationMaterialInsert>;
         Relationships: [];
       };
     };

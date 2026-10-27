@@ -66,7 +66,7 @@ const LANE_NOTES: Record<EvidenceSourceType, string> = {
   project:
     "Recorded only when every milestone is submitted and a repository is linked. Self-submitted and unverified.",
   interview:
-    "Recorded from interview practice. Interview drills are a later phase.",
+    "Written only when a practice interview is finished and every question is rated, one record per skill you marked “I answered it”. You rated it yourself — no person outside this app checked it.",
   self_report:
     "What you told us you believe. Never merged into a demonstrated score.",
 };

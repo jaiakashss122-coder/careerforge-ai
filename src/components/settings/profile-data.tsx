@@ -65,6 +65,10 @@ export function ProfileDataControls({
       workspace.evidence.length > 0 ||
       workspace.careerExperiments.length > 0 ||
       workspace.careerPreferences.length > 0 ||
+      workspace.mockInterviews.length > 0 ||
+      workspace.interviewAttempts.length > 0 ||
+      workspace.jobApplications.length > 0 ||
+      workspace.materials.length > 0 ||
       ai.conversations.length > 0 ||
       ai.prompts.length > 0;
 
@@ -82,7 +86,7 @@ export function ProfileDataControls({
         exportedAt: new Date().toISOString(),
         source: "local-preview",
         note:
-          "This export contains the profile, assessment responses, generated roadmaps, study sessions, projects with their milestones and links, skill evidence records, career experiments with their reflections, your recorded specialization choice with the reason you wrote, tutor conversations, and saved prompts stored in this browser. Demo AI output is flagged with isDemo, and each evidence record keeps its verified flag. It does not include any cloud account because none exists in preview mode.",
+          "This export contains the profile, assessment responses, generated roadmaps, study sessions, projects with their milestones and links, skill evidence records, career experiments with their reflections, your recorded specialization choice with the reason you wrote, practice interviews with every written answer and rating, saved roles including the posting text you pasted, the wording you saved for each application document together with the record of what your data looked like when you saved it, tutor conversations, and saved prompts stored in this browser. Demo AI output is flagged with isDemo, and each evidence record keeps its verified flag. It does not include any cloud account because none exists in preview mode.",
         profile,
         assessments: workspace.assessments,
         roadmaps: workspace.roadmaps,
@@ -91,6 +95,10 @@ export function ProfileDataControls({
         skillEvidence: workspace.evidence,
         careerExperiments: workspace.careerExperiments,
         careerChoice: workspace.careerPreferences[0] ?? null,
+        mockInterviews: workspace.mockInterviews,
+        interviewAttempts: workspace.interviewAttempts,
+        jobApplications: workspace.jobApplications,
+        applicationMaterials: workspace.materials,
         prompts: ai.prompts,
         tutorConversations: ai.conversations,
       },
@@ -122,7 +130,7 @@ export function ProfileDataControls({
         clearPreviewProfile();
         setMessage({
           tone: "success",
-          text: "All local preview data was removed from this browser: profile, assessments, roadmaps, sessions, projects, skill evidence, career experiments with your reflections and your recorded specialization choice, tutor conversations, and saved prompts.",
+          text: "All local preview data was removed from this browser: profile, assessments, roadmaps, sessions, projects, skill evidence, career experiments with your reflections and your recorded specialization choice, practice interviews with their answers, saved roles with their pasted posting text, tutor conversations, and saved prompts.",
         });
       } else {
         const result = await deleteLearningDataAction("DELETE");

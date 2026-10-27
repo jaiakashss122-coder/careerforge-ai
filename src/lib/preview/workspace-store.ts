@@ -27,6 +27,49 @@ import {
   isEvidenceSourceType,
   type SkillEvidenceRecord,
 } from "@/lib/evidence/types";
+import { readJobDescription } from "@/lib/interview/description";
+import {
+  MOCK_INTERVIEW_MAX_QUESTIONS,
+  MOCK_INTERVIEW_MIN_QUESTIONS,
+  buildInterviewEvidence,
+  chooseMockQuestions,
+  summarizeInterview,
+} from "@/lib/interview/mock";
+import { getInterviewQuestion } from "@/lib/interview/questions";
+import {
+  ANSWER_RATING_META,
+  APPLICATION_STATUS_META,
+  MAX_ANSWER_LENGTH,
+  MAX_APPLICATION_FIELD_LENGTH,
+  MAX_JOB_DESCRIPTION_LENGTH,
+  MAX_NOTES_LENGTH,
+  MIN_JOB_DESCRIPTION_LENGTH,
+  isAnswerRating,
+  isApplicationSourceKind,
+  isApplicationStatus,
+  isInterviewTopic,
+  type AnswerRating,
+  type ApplicationSourceKind,
+  type ApplicationStatus,
+  type InterviewAttemptRecord,
+  type InterviewTopic,
+  type JobApplicationRecord,
+  type MockInterviewRecord,
+} from "@/lib/interview/types";
+import {
+  buildSkillProofs,
+  draftFingerprint,
+} from "@/lib/materials/backing";
+import {
+  MATERIAL_KIND_META,
+  MAX_DRAFT_LENGTH,
+  MIN_DRAFT_LENGTH,
+  isDraftBuiltFrom,
+  isMaterialKind,
+  type MaterialDraftRecord,
+  type MaterialKind,
+} from "@/lib/materials/types";
+import { loadPreviewProfile } from "@/lib/preview/profile-store";
 import {
   evaluateProjectCompletion,
   evaluateProjectReadiness,
@@ -34,6 +77,7 @@ import {
   buildProjectEvidence,
 } from "@/lib/projects/readiness";
 import { getProjectTemplate } from "@/lib/projects/templates";
+import { SKILLS } from "@/lib/skills/catalog";
 import {
   isMilestoneStatus,
   isProjectStatus,
@@ -229,6 +273,18 @@ export function parsePreviewWorkspace(raw: string | null): WorkspaceSnapshot {
       : [],
     careerPreferences: Array.isArray(value.careerPreferences)
       ? value.careerPreferences.filter(isCareerPreference).slice(0, 1)
+      : [],
+    mockInterviews: Array.isArray(value.mockInterviews)
+      ? value.mockInterviews.filter(isMockInterview)
+      : [],
+    interviewAttempts: Array.isArray(value.interviewAttempts)
+      ? value.interviewAttempts.filter(isInterviewAttempt)
+      : [],
+    jobApplications: Array.isArray(value.jobApplications)
+      ? value.jobApplications.filter(isJobApplication)
+      : [],
+    materials: Array.isArray(value.materials)
+      ? value.materials.filter(isMaterialDraft).map(readableFingerprint)
       : [],
   };
 }
@@ -923,6 +979,8 @@ export function deletePreviewProject(
 
 type CareerPreviewResult = { ok: true; message: string } | { ok: false; message: string };
 
+type InterviewPreviewResult = CareerPreviewResult;
+
 function isWorkLink(value: string) {
   return /^https?:\/\/\S+$/i.test(value.trim());
 }
@@ -1166,5 +1224,782 @@ export function clearPreviewCareerOverride(): CareerPreviewResult {
   return {
     ok: true,
     message: "Your recorded choice was removed. The ranking still stands on its own.",
+  };
+}
+
+function isStringList(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((entry) => typeof entry === "string" && entry.length <= 120)
+  );
+}
+
+function isMockInterview(value: unknown): value is MockInterviewRecord {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.label === "string" &&
+    Array.isArray(value.topics) &&
+    value.topics.every(isInterviewTopic) &&
+    isStringList(value.questionIds) &&
+    value.questionIds.every((id) => getInterviewQuestion(id) !== null) &&
+    typeof value.startedAt === "string" &&
+    (value.completedAt === null || typeof value.completedAt === "string")
+  );
+}
+
+function isInterviewAttempt(value: unknown): value is InterviewAttemptRecord {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.questionId === "string" &&
+    getInterviewQuestion(value.questionId) !== null &&
+    typeof value.topic === "string" &&
+    isInterviewTopic(value.topic) &&
+    typeof value.prompt === "string" &&
+    typeof value.answerText === "string" &&
+    typeof value.rating === "string" &&
+    isAnswerRating(value.rating) &&
+    isStringList(value.skills) &&
+    (value.interviewId === null || typeof value.interviewId === "string") &&
+    typeof value.createdAt === "string"
+  );
+}
+
+function isJobApplication(value: unknown): value is JobApplicationRecord {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.company === "string" &&
+    typeof value.roleTitle === "string" &&
+    (value.jobUrl === null || typeof value.jobUrl === "string") &&
+    (value.location === null || typeof value.location === "string") &&
+    typeof value.sourceKind === "string" &&
+    isApplicationSourceKind(value.sourceKind) &&
+    typeof value.status === "string" &&
+    isApplicationStatus(value.status) &&
+    (value.appliedOn === null || typeof value.appliedOn === "string") &&
+    (value.nextAction === null || typeof value.nextAction === "string") &&
+    (value.nextActionOn === null || typeof value.nextActionOn === "string") &&
+    isStringList(value.skills) &&
+    typeof value.description === "string" &&
+    typeof value.notes === "string" &&
+    typeof value.createdAt === "string" &&
+    typeof value.updatedAt === "string"
+  );
+}
+
+function isMaterialDraft(value: unknown): value is MaterialDraftRecord {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.kind === "string" &&
+    isMaterialKind(value.kind) &&
+    typeof value.content === "string" &&
+    (value.targetRole === null || typeof value.targetRole === "string") &&
+    (value.applicationId === null || typeof value.applicationId === "string") &&
+    (value.builtFrom === null || isRecord(value.builtFrom)) &&
+    typeof value.createdAt === "string" &&
+    typeof value.updatedAt === "string"
+  );
+}
+
+/**
+ * A draft whose own text still reads correctly is kept even when the fingerprint
+ * beside it does not: the wording belongs to the learner, and losing it because a
+ * count field was damaged would be worse than losing the staleness check. The
+ * fingerprint is then reported as missing, never filled in with guesses.
+ */
+function readableFingerprint(draft: MaterialDraftRecord): MaterialDraftRecord {
+  return {
+    ...draft,
+    builtFrom: isDraftBuiltFrom(draft.builtFrom) ? draft.builtFrom : null,
+  };
+}
+
+function tooLong(value: string, limit: number, label: string) {
+  return value.length > limit
+    ? { ok: false as const, message: `${label} is longer than ${limit} characters, which is what this field can hold.` }
+    : null;
+}
+
+function isDay(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+export function startPreviewMockInterview({
+  topics,
+  track,
+  count,
+}: {
+  topics: InterviewTopic[];
+  track: CareerTrackSlug | null;
+  count: number;
+}): InterviewPreviewResult {
+  if (topics.length === 0) {
+    return { ok: false, message: "Pick at least one area to practise." };
+  }
+
+  if (!topics.every(isInterviewTopic)) {
+    return {
+      ok: false,
+      message: "An area you picked is not one this app asks about.",
+    };
+  }
+
+  if (
+    !Number.isInteger(count) ||
+    count < MOCK_INTERVIEW_MIN_QUESTIONS ||
+    count > MOCK_INTERVIEW_MAX_QUESTIONS
+  ) {
+    return {
+      ok: false,
+      message: `Choose a whole number of questions between ${MOCK_INTERVIEW_MIN_QUESTIONS} and ${MOCK_INTERVIEW_MAX_QUESTIONS}.`,
+    };
+  }
+
+  const workspace = loadPreviewWorkspace();
+  const plan = chooseMockQuestions({
+    topics,
+    track,
+    count,
+    attempts: workspace.interviewAttempts,
+  });
+
+  if (plan.questionIds.length === 0) {
+    return {
+      ok: false,
+      message: "This app has no questions for that combination, so there is nothing to run.",
+    };
+  }
+
+  const now = new Date().toISOString();
+
+  savePreviewWorkspace({
+    ...workspace,
+    mockInterviews: [
+      {
+        id: createId(),
+        label: plan.label,
+        topics: plan.topics,
+        questionIds: plan.questionIds,
+        startedAt: now,
+        completedAt: null,
+      },
+      ...workspace.mockInterviews,
+    ],
+  });
+
+  return {
+    ok: true,
+    message: `A ${plan.questionIds.length}-question practice interview is open. Nothing is written to your skill records until you finish it.`,
+  };
+}
+
+export function recordPreviewInterviewAnswer({
+  interviewId,
+  questionId,
+  answerText,
+  rating,
+}: {
+  interviewId: string | null;
+  questionId: string;
+  answerText: string;
+  rating: AnswerRating;
+}): InterviewPreviewResult {
+  const question = getInterviewQuestion(questionId);
+
+  if (!question) {
+    return { ok: false, message: "That question is not one this app asks." };
+  }
+
+  if (!isAnswerRating(rating)) {
+    return {
+      ok: false,
+      message: "Choose one of the three answers about how it went.",
+    };
+  }
+
+  const text = answerText.trim();
+  const tooLongNotice = tooLong(text, MAX_ANSWER_LENGTH, "That written answer");
+
+  if (tooLongNotice) return tooLongNotice;
+
+  const workspace = loadPreviewWorkspace();
+  const interview = interviewId
+    ? workspace.mockInterviews.find((entry) => entry.id === interviewId)
+    : null;
+
+  if (interviewId && !interview) {
+    return { ok: false, message: "That interview is not open in this browser." };
+  }
+
+  if (interview?.completedAt) {
+    return {
+      ok: false,
+      message:
+        "That interview is already finished, so its answers are closed. Start another one to practise again.",
+    };
+  }
+
+  if (interview && !interview.questionIds.includes(question.id)) {
+    return { ok: false, message: "That question is not part of this interview." };
+  }
+
+  if (
+    workspace.interviewAttempts.some(
+      (attempt) =>
+        attempt.questionId === question.id &&
+        (interviewId === null || attempt.interviewId === interviewId),
+    )
+  ) {
+    return {
+      ok: false,
+      message:
+        "You have already rated that question in this interview. Remove the answer first if you want to change it.",
+    };
+  }
+
+  savePreviewWorkspace({
+    ...workspace,
+    interviewAttempts: [
+      {
+        id: createId(),
+        questionId: question.id,
+        topic: question.topic,
+        // Copied at the moment of answering, so a later edit to the bank
+        // cannot change what this learner was asked.
+        prompt: question.prompt,
+        answerText: text,
+        rating,
+        skills: question.skills,
+        interviewId,
+        createdAt: new Date().toISOString(),
+      },
+      ...workspace.interviewAttempts,
+    ],
+  });
+
+  return {
+    ok: true,
+    message: `Recorded as “${ANSWER_RATING_META[rating].label}”. No skill record is written yet; a finished interview is what writes those.`,
+  };
+}
+
+export function removePreviewInterviewAttempt(
+  attemptId: string,
+): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const attempt = workspace.interviewAttempts.find(
+    (entry) => entry.id === attemptId,
+  );
+
+  if (!attempt) {
+    return { ok: false, message: "That answer no longer exists." };
+  }
+
+  const interview = workspace.mockInterviews.find(
+    (entry) => entry.id === attempt.interviewId,
+  );
+
+  if (interview?.completedAt) {
+    return {
+      ok: false,
+      message:
+        "That answer belongs to a finished interview. Remove the interview itself to clear everything it wrote.",
+    };
+  }
+
+  savePreviewWorkspace({
+    ...workspace,
+    interviewAttempts: workspace.interviewAttempts.filter(
+      (entry) => entry.id !== attemptId,
+    ),
+  });
+
+  return {
+    ok: true,
+    message: "That answer was removed. It counts toward nothing now.",
+  };
+}
+
+export function finishPreviewMockInterview(
+  interviewId: string,
+): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const interview = workspace.mockInterviews.find(
+    (entry) => entry.id === interviewId,
+  );
+
+  if (!interview) {
+    return { ok: false, message: "That interview is not in this browser." };
+  }
+
+  if (interview.completedAt) {
+    return { ok: false, message: "That interview is already finished." };
+  }
+
+  const outcome = summarizeInterview({
+    questionIds: interview.questionIds,
+    attempts: workspace.interviewAttempts,
+  });
+
+  if (!outcome.ready) {
+    return {
+      ok: false,
+      message: outcome.notReadyMessage ?? "Rate every question first.",
+    };
+  }
+
+  const completedAt = new Date().toISOString();
+  const completed = { ...interview, completedAt };
+  const drafts = buildInterviewEvidence({
+    interview: completed,
+    attempts: workspace.interviewAttempts,
+    outcome,
+  });
+
+  const existingIds = new Set(
+    workspace.evidence
+      .filter(
+        (record) =>
+          record.sourceType === "interview" && record.sourceId === interviewId,
+      )
+      .map((record) => record.skillSlug),
+  );
+  const newEvidence = drafts
+    .filter((draft) => !existingIds.has(draft.skillSlug))
+    .map((draft) => ({
+      id: createId(),
+      skillSlug: draft.skillSlug,
+      sourceType: "interview" as const,
+      sourceId: interviewId,
+      evidenceLevel: "interview_evidence" as const,
+      score: null,
+      verified: false,
+      notes: draft.notes,
+      createdAt: completedAt,
+    }));
+
+  savePreviewWorkspace({
+    ...workspace,
+    mockInterviews: workspace.mockInterviews.map((entry) =>
+      entry.id === interviewId ? completed : entry,
+    ),
+    evidence: [...newEvidence, ...workspace.evidence],
+  });
+
+  const evidenceLine =
+    newEvidence.length === 0
+      ? "No skill record was written, because no question in it was rated “I answered it”."
+      : `Written ${newEvidence.length} unverified ${
+          newEvidence.length === 1 ? "skill record" : "skill records"
+        } at the interview level, one for each skill you rated as answered.`;
+
+  return {
+    ok: true,
+    message: `Interview finished: ${outcome.covered} of ${outcome.total} questions rated as answered, ${outcome.partial} part-answered, ${outcome.missed} you could not answer. ${evidenceLine}`,
+  };
+}
+
+export function removePreviewMockInterview(
+  interviewId: string,
+): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const interview = workspace.mockInterviews.find(
+    (entry) => entry.id === interviewId,
+  );
+
+  if (!interview) {
+    return { ok: false, message: "That practice interview no longer exists." };
+  }
+
+  savePreviewWorkspace({
+    ...workspace,
+    mockInterviews: workspace.mockInterviews.filter(
+      (entry) => entry.id !== interviewId,
+    ),
+    interviewAttempts: workspace.interviewAttempts.filter(
+      (entry) => entry.interviewId !== interviewId,
+    ),
+    evidence: workspace.evidence.filter(
+      (record) =>
+        !(record.sourceType === "interview" && record.sourceId === interviewId),
+    ),
+  });
+
+  return {
+    ok: true,
+    message:
+      "That practice interview, its answers, and the skill records it wrote were removed. Nothing about it stays in your progress.",
+  };
+}
+
+export function savePreviewJobApplication(input: {
+  company: string;
+  roleTitle: string;
+  jobUrl: string;
+  location: string;
+  sourceKind: ApplicationSourceKind;
+  status: ApplicationStatus;
+  appliedOn: string;
+  nextAction: string;
+  nextActionOn: string;
+  notes: string;
+  description: string;
+}): InterviewPreviewResult {
+  const company = input.company.trim();
+  const roleTitle = input.roleTitle.trim();
+  const jobUrl = input.jobUrl.trim();
+  const location = input.location.trim();
+  const nextAction = input.nextAction.trim();
+  const notes = input.notes.trim();
+  const description = input.description.trim();
+  const appliedOn = input.appliedOn.trim();
+  const nextActionOn = input.nextActionOn.trim();
+
+  if (company === "") {
+    return { ok: false, message: "Write the organisation this role is at." };
+  }
+
+  if (roleTitle === "") {
+    return { ok: false, message: "Write the role title as the posting words it." };
+  }
+
+  for (const [value, label] of [
+    [company, "The organisation name"],
+    [roleTitle, "The role title"],
+    [location, "The location"],
+    [nextAction, "The next action"],
+  ] as const) {
+    const notice = tooLong(value, MAX_APPLICATION_FIELD_LENGTH, label);
+
+    if (notice) return notice;
+  }
+
+  if (jobUrl !== "" && !isWorkLink(jobUrl)) {
+    return {
+      ok: false,
+      message: "The link must start with http:// or https://, or be left empty.",
+    };
+  }
+
+  if (jobUrl.length > 500) {
+    return { ok: false, message: "That link is too long to save." };
+  }
+
+  for (const [value, label] of [
+    [appliedOn, "The date you applied"],
+    [nextActionOn, "The date of the next action"],
+  ] as const) {
+    if (value !== "" && !isDay(value)) {
+      return { ok: false, message: `${label} needs the date form 2026-10-27.` };
+    }
+  }
+
+  if (description !== "" && description.length < MIN_JOB_DESCRIPTION_LENGTH) {
+    return {
+      ok: false,
+      message: `A posting has to be at least ${MIN_JOB_DESCRIPTION_LENGTH} characters before anything useful can be read out of it. Paste the responsibilities and requirements, not the title.`,
+    };
+  }
+
+  const tooLongNotice = tooLong(description, MAX_JOB_DESCRIPTION_LENGTH, "That posting");
+
+  if (tooLongNotice) return tooLongNotice;
+
+  if (notes.length > MAX_NOTES_LENGTH) {
+    return { ok: false, message: "Those notes are longer than this field can hold." };
+  }
+
+  if (!isApplicationSourceKind(input.sourceKind)) {
+    return {
+      ok: false,
+      message: "Say whether this is an opening you found or a written example.",
+    };
+  }
+
+  if (!isApplicationStatus(input.status)) {
+    return { ok: false, message: "That status is not one this app records." };
+  }
+
+  if (input.status === "applied" && appliedOn === "") {
+    return {
+      ok: false,
+      message:
+        "Marking this as applied needs the date you sent it, so the record stays checkable.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const workspace = loadPreviewWorkspace();
+
+  savePreviewWorkspace({
+    ...workspace,
+    jobApplications: [
+      {
+        id: createId(),
+        company,
+        roleTitle,
+        jobUrl: jobUrl === "" ? null : jobUrl,
+        location: location === "" ? null : location,
+        sourceKind: input.sourceKind,
+        status: input.status,
+        appliedOn: appliedOn === "" ? null : appliedOn,
+        nextAction: nextAction === "" ? null : nextAction,
+        nextActionOn: nextActionOn === "" ? null : nextActionOn,
+        skills: readJobDescription(description).skills.map((skill) => skill.slug),
+        description,
+        notes,
+        createdAt: now,
+        updatedAt: now,
+      },
+      ...workspace.jobApplications,
+    ],
+  });
+
+  return {
+    ok: true,
+    message:
+      description === ""
+        ? "Saved. Without the posting text there is nothing to read a skill out of, so no comparison is shown."
+        : `Saved. The comparison below reads the text you pasted against the ${SKILLS.length} skills this app knows.`,
+  };
+}
+
+export function updatePreviewApplicationProgress(input: {
+  applicationId: string;
+  status: ApplicationStatus;
+  appliedOn: string;
+  nextAction: string;
+  nextActionOn: string;
+  notes: string;
+  description: string;
+}): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const application = workspace.jobApplications.find(
+    (entry) => entry.id === input.applicationId,
+  );
+
+  if (!application) {
+    return { ok: false, message: "That saved role is not in this browser." };
+  }
+
+  if (!isApplicationStatus(input.status)) {
+    return { ok: false, message: "That status is not one this app records." };
+  }
+
+  const appliedOn = input.appliedOn.trim();
+  const nextActionOn = input.nextActionOn.trim();
+  const nextAction = input.nextAction.trim();
+  const notes = input.notes.trim();
+  const description = input.description.trim();
+
+  if (description !== "" && description.length < MIN_JOB_DESCRIPTION_LENGTH) {
+    return {
+      ok: false,
+      message: `A posting has to be at least ${MIN_JOB_DESCRIPTION_LENGTH} characters before anything useful can be read out of it. Paste the responsibilities and requirements, not the title, or clear the field to store no text at all.`,
+    };
+  }
+
+  const descriptionNotice = tooLong(
+    description,
+    MAX_JOB_DESCRIPTION_LENGTH,
+    "That posting",
+  );
+
+  if (descriptionNotice) return descriptionNotice;
+
+  if (input.status === "applied" && appliedOn === "") {
+    return {
+      ok: false,
+      message:
+        "Marking this as applied needs the date you sent it, so the record stays checkable.",
+    };
+  }
+
+  for (const [value, label] of [
+    [appliedOn, "The date you applied"],
+    [nextActionOn, "The date of the next action"],
+  ] as const) {
+    if (value !== "" && !isDay(value)) {
+      return { ok: false, message: `${label} needs the date form 2026-10-27.` };
+    }
+  }
+
+  const actionNotice = tooLong(nextAction, MAX_APPLICATION_FIELD_LENGTH, "The next action");
+
+  if (actionNotice) return actionNotice;
+
+  if (notes.length > MAX_NOTES_LENGTH) {
+    return { ok: false, message: "Those notes are longer than this field can hold." };
+  }
+
+  const skills = readJobDescription(description).skills.map(
+    (skill) => skill.slug,
+  );
+
+  savePreviewWorkspace({
+    ...workspace,
+    jobApplications: workspace.jobApplications.map((entry) =>
+      entry.id === input.applicationId
+        ? {
+            ...entry,
+            status: input.status,
+            appliedOn: appliedOn === "" ? null : appliedOn,
+            nextAction: nextAction === "" ? null : nextAction,
+            nextActionOn: nextActionOn === "" ? null : nextActionOn,
+            notes,
+            description,
+            skills,
+            updatedAt: new Date().toISOString(),
+          }
+        : entry,
+    ),
+  });
+
+  const descriptionLine =
+    description === ""
+      ? " The posting text was cleared, so no comparison is shown for this role."
+      : ` The posting text was saved, and ${skills.length} of the ${SKILLS.length} skills this app knows were found in it.`;
+
+  return {
+    ok: true,
+    message: `That role now reads “${APPLICATION_STATUS_META[input.status].label}”: ${APPLICATION_STATUS_META[input.status].meaning}${descriptionLine}`,
+  };
+}
+
+export function removePreviewJobApplication(
+  applicationId: string,
+): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const application = workspace.jobApplications.find(
+    (entry) => entry.id === applicationId,
+  );
+
+  if (!application) {
+    return { ok: false, message: "That saved role no longer exists." };
+  }
+
+  const removedAt = new Date().toISOString();
+
+  savePreviewWorkspace({
+    ...workspace,
+    jobApplications: workspace.jobApplications.filter(
+      (entry) => entry.id !== applicationId,
+    ),
+    // Mirrors the `on delete set null` the stored table has: the wording the
+    // learner wrote survives, only the pointer to the role goes.
+    materials: workspace.materials.map((draft) =>
+      draft.applicationId === applicationId
+        ? { ...draft, applicationId: null, updatedAt: removedAt }
+        : draft,
+    ),
+  });
+
+  return {
+    ok: true,
+    message: "That saved role and the text you pasted with it were removed.",
+  };
+}
+
+/**
+ * Saves the learner's own wording for one document, kept beside the generated
+ * lines rather than replacing them. One draft per document, so the screen never
+ * holds two versions of the same résumé and has to guess which one gets sent.
+ * The fingerprint of today's records is taken here, not passed in, so a draft
+ * cannot be saved claiming data the workspace does not hold.
+ */
+export function savePreviewMaterialDraft({
+  kind,
+  content,
+  targetRole,
+  applicationId,
+}: {
+  kind: MaterialKind;
+  content: string;
+  targetRole: string | null;
+  applicationId: string | null;
+}): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const label = MATERIAL_KIND_META[kind].label;
+  const text = content.trim();
+
+  if (text.length < MIN_DRAFT_LENGTH) {
+    return {
+      ok: false,
+      message: `That draft is ${text.length} characters, under the ${MIN_DRAFT_LENGTH} this app needs before it calls something a document rather than a title.`,
+    };
+  }
+
+  const long = tooLong(text, MAX_DRAFT_LENGTH, `That ${label} draft`);
+  if (long) return long;
+
+  if (
+    applicationId &&
+    !workspace.jobApplications.some((entry) => entry.id === applicationId)
+  ) {
+    return {
+      ok: false,
+      message: "The role you picked is not saved in this browser.",
+    };
+  }
+
+  const savedAt = new Date().toISOString();
+  const builtFrom = draftFingerprint({
+    workspace,
+    proofs: buildSkillProofs({ workspace, profile: loadPreviewProfile() }),
+    savedAt,
+  });
+  const existing = workspace.materials.find((draft) => draft.kind === kind);
+
+  const record: MaterialDraftRecord = {
+    id: existing?.id ?? createId(),
+    kind,
+    content: text,
+    targetRole,
+    applicationId,
+    builtFrom,
+    createdAt: existing?.createdAt ?? savedAt,
+    updatedAt: savedAt,
+  };
+
+  savePreviewWorkspace({
+    ...workspace,
+    materials: [
+      record,
+      ...workspace.materials.filter((draft) => draft.kind !== kind),
+    ],
+  });
+
+  return {
+    ok: true,
+    message: existing
+      ? `Your ${label} wording was replaced. This browser keeps one draft per document, so the version you saved before it is gone.`
+      : `Your ${label} wording was saved, together with a count of what your records held today so this screen can tell you when they move on.`,
+  };
+}
+
+export function removePreviewMaterialDraft(
+  kind: MaterialKind,
+): InterviewPreviewResult {
+  const workspace = loadPreviewWorkspace();
+  const draft = workspace.materials.find((entry) => entry.kind === kind);
+
+  if (!draft) {
+    return {
+      ok: false,
+      message: `You have no saved ${MATERIAL_KIND_META[kind].label} draft in this browser.`,
+    };
+  }
+
+  savePreviewWorkspace({
+    ...workspace,
+    materials: workspace.materials.filter((entry) => entry.kind !== kind),
+  });
+
+  return {
+    ok: true,
+    message: `Your saved ${MATERIAL_KIND_META[kind].label} wording was removed. The lines this app generated are still on screen, because they are read from your records every time.`,
   };
 }

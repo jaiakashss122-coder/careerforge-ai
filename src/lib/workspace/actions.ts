@@ -64,6 +64,7 @@ function revalidateWorkspace() {
     "/projects",
     "/progress",
     "/careers",
+    "/interview",
   ]) {
     revalidatePath(path);
   }
@@ -601,6 +602,10 @@ export async function deleteLearningDataAction(
     "projects",
     "career_experiments",
     "career_preferences",
+    "interview_attempts",
+    "mock_interviews",
+    "job_applications",
+    "application_materials",
     "tutor_conversations",
     "saved_prompts",
     "ai_usage_events",
@@ -626,6 +631,6 @@ export async function deleteLearningDataAction(
   return {
     ok: true,
     message:
-      "Assessment results, roadmaps, study sessions, projects with their milestones, skill evidence, career experiments with your reflections, your recorded specialization choice, tutor conversations, and saved prompts were deleted. Your profile and account were kept.",
+      "Assessment results, roadmaps, study sessions, projects with their milestones, skill evidence, career experiments with your reflections, your recorded specialization choice, practice interviews with every written answer, saved roles with their pasted posting text, the wording you saved for your résumé, LinkedIn and portfolio, tutor conversations, and saved prompts were deleted. Your profile and account were kept.",
   };
 }

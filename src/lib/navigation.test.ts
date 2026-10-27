@@ -8,11 +8,11 @@ import {
 } from "@/lib/roadmap/blueprint";
 
 describe("navigation", () => {
-  it("contains the eleven agreed destinations exactly once", () => {
+  it("contains the twelve agreed destinations exactly once", () => {
     const hrefs = NAV_ITEMS.map((item) => item.href);
 
-    expect(NAV_ITEMS).toHaveLength(11);
-    expect(new Set(hrefs).size).toBe(11);
+    expect(NAV_ITEMS).toHaveLength(12);
+    expect(new Set(hrefs).size).toBe(12);
     expect(hrefs).toEqual(
       expect.arrayContaining([
         "/assessment",
@@ -24,6 +24,7 @@ describe("navigation", () => {
         "/careers",
         "/intelligence",
         "/interview",
+        "/materials",
         "/progress",
         "/settings",
       ]),
@@ -38,6 +39,8 @@ describe("navigation", () => {
       "/careers",
       "/dashboard",
       "/intelligence",
+      "/interview",
+      "/materials",
       "/progress",
       "/projects",
       "/prompts",
@@ -46,15 +49,8 @@ describe("navigation", () => {
       "/tutor",
     ]);
     expect(
-      NAV_ITEMS.filter((item) => item.status === "planned")
-        .map((item) => item.href)
-        .sort(),
-    ).toEqual(["/interview"]);
-    expect(
-      NAV_ITEMS.filter((item) => item.status === "planned").every(
-        (item) => item.phase >= 5,
-      ),
-    ).toBe(true);
+      NAV_ITEMS.filter((item) => item.status !== "available"),
+    ).toEqual([]);
   });
 
   it("resolves nested routes to their section", () => {

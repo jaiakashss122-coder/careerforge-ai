@@ -2,14 +2,19 @@ import {
   ArrowRight,
   Bot,
   BrainCircuit,
+  BriefcaseBusiness,
   CalendarDays,
+  ChartColumn,
   Check,
   CirclePlay,
   ClipboardCheck,
   Compass,
   Database,
+  FileText,
+  FolderKanban,
   GitBranch,
   Lock,
+  Radar,
   Route,
   ShieldCheck,
   Sparkles,
@@ -23,11 +28,14 @@ import { Badge } from "@/components/ui/badge";
 import { buttonStyles } from "@/components/ui/button";
 import { getViewer } from "@/lib/auth/viewer";
 import { CAREER_TRACKS } from "@/lib/career/tracks";
+import { INTERVIEW_QUESTIONS } from "@/lib/interview/questions";
+import { INTERVIEW_TOPIC_ORDER } from "@/lib/interview/types";
 import {
   BLUEPRINT_TOTAL_HOURS,
   BLUEPRINT_TOTAL_WEEKS,
   NINETY_DAY_BLUEPRINT,
 } from "@/lib/roadmap/blueprint";
+import { SKILLS } from "@/lib/skills/catalog";
 
 export const metadata: Metadata = {
   title: "CareerForge AI — Learn deliberately, choose with evidence",
@@ -71,6 +79,42 @@ const liveFeatures = [
     note: "Live AI or clearly labeled demo mode",
   },
   {
+    icon: FolderKanban,
+    title: "Project Lab with milestones",
+    body: "Portfolio projects broken into ordered steps. A step only becomes a skill record once you link the work you produced for it, and advanced projects stay locked until their prerequisites have evidence.",
+    note: "No credit for unfinished work",
+  },
+  {
+    icon: ChartColumn,
+    title: "Progress analytics in separate lanes",
+    body: "Assessment scores, project work and interview practice are counted separately, so a rating you gave yourself never turns into a demonstrated score.",
+    note: "Study time only from sessions you started",
+  },
+  {
+    icon: Compass,
+    title: `Career Explorer across ${CAREER_TRACKS.length} roles`,
+    body: "Adjacent data and AI roles ranked from your own answers, each with a short experiment you can finish and a reflection you write afterwards. Your recorded choice stays visible even when it disagrees with the ranking.",
+    note: "A score is a hypothesis until the work is linked",
+  },
+  {
+    icon: Radar,
+    title: "Industry Intelligence with sources",
+    body: "Named developments with the page that says so and its date, checked by hand. Where nothing has been verified, the screen says that instead of inventing a figure.",
+    note: "No invented news, hiring counts or salaries",
+  },
+  {
+    icon: BriefcaseBusiness,
+    title: "Interview Preparation",
+    body: `${INTERVIEW_QUESTIONS.length} practice questions across ${INTERVIEW_TOPIC_ORDER.length} areas that you rate yourself, and a job posting you paste is read against the ${SKILLS.length} skills this app scores and the records on your own account.`,
+    note: "Interview results stay labeled as self-rated",
+  },
+  {
+    icon: FileText,
+    title: "Application materials from your own records",
+    body: "A résumé, LinkedIn guidance and a portfolio review assembled only from what this workspace already holds. Every line names the record it came from, and a section your records do not reach says so instead of being filled.",
+    note: "Nothing here that this app did not see",
+  },
+  {
     icon: Route,
     title: "A real workspace foundation",
     body: "Responsive navigation, accessible components, loading and empty states, and honest phase labels on unfinished areas.",
@@ -80,19 +124,9 @@ const liveFeatures = [
 
 const nextPhases = [
   {
-    phase: 4,
-    title: "Projects and progress",
-    body: "Project milestones, rubrics, evidence-based analytics, revision backlogs, and next-best-action logic.",
-  },
-  {
-    phase: 5,
-    title: "Career preparation",
-    body: "Career experiments, role comparison, job-description analysis, interviews, and application tracking.",
-  },
-  {
-    phase: 6,
+    phase: 7,
     title: "Quality and deployment",
-    body: "Security boundary tests, failure-state coverage, mobile checks, and setup/deployment documentation.",
+    body: "Application materials are built: three documents, provenance on every line, and your own saved wording kept with the records it was written against. What remains is security boundary tests, failure-state coverage, mobile checks, deleting your whole account, and setup documents for running this against a live project.",
   },
 ];
 
@@ -169,7 +203,7 @@ export default async function HomePage() {
         <section className="relative mx-auto grid w-full max-w-6xl gap-12 px-4 pb-20 pt-10 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:pt-16">
           <div className="space-y-8">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="accent">Phase 3 AI learning loop</Badge>
+              <Badge variant="accent">Phase 6 application materials</Badge>
               <Badge variant="outline">Built for one real learner</Badge>
             </div>
 
@@ -363,7 +397,7 @@ export default async function HomePage() {
                 invented progress or simulated AI output.
               </p>
             </div>
-            <Badge variant="success">Phase 3 implemented</Badge>
+            <Badge variant="success">Phases 1 to 5 implemented</Badge>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -397,7 +431,7 @@ export default async function HomePage() {
             })}
           </div>
 
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-3">
             {nextPhases.map((item) => (
               <div
                 key={item.phase}
@@ -405,7 +439,7 @@ export default async function HomePage() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
-                    Phase {item.phase}
+                    Phase {item.phase} — not built yet
                   </span>
                   <span className="size-1.5 rounded-full bg-border-strong" />
                 </div>
@@ -511,10 +545,12 @@ export default async function HomePage() {
                 Build the profile. Then earn the evidence.
               </h2>
               <p className="text-sm leading-6 text-muted">
-                Phase 3 gives you a real account, a private editable profile, an
-                adaptive assessment, a personalized 13-week roadmap, a daily
-                learning loop that records only real sessions, and an AI Tutor
-                and Prompt Studio that are honest about demo mode.
+                Every area above works today: a real account, a private editable
+                profile, an adaptive assessment, a personalized 13-week roadmap, a
+                daily learning loop that records only real sessions, an AI Tutor
+                and Prompt Studio that are honest about demo mode, a project lab
+                that credits only linked work, and career, industry and interview
+                screens that say where their information comes from.
               </p>
             </div>
             <Link href={primaryHref} className={buttonStyles({ size: "lg" })}>
@@ -531,7 +567,7 @@ export default async function HomePage() {
             <Logo href="/" compact />
             <span>CareerForge AI</span>
             <span className="rounded-full border border-border px-2 py-0.5 text-[0.625rem] uppercase tracking-wider">
-              Phase 3
+              Phase 6
             </span>
           </div>
           <p>

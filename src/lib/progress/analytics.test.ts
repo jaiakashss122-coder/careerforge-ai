@@ -475,7 +475,7 @@ describe("question accuracy and repeated mistakes", () => {
 });
 
 describe("revision backlog", () => {
-  it("uses the remedial lesson when the screen named one and dedupes repeats", () => {
+  it("uses the remedial topic when the screen named one and dedupes repeats", () => {
     const analytics = buildProgressAnalytics({
       workspace: workspaceWith({
         assessments: [
@@ -504,7 +504,7 @@ describe("revision backlog", () => {
 
     expect(analytics.learningActivity.revisionBacklog).toHaveLength(1);
     expect(analytics.learningActivity.revisionBacklog[0]).toMatchObject({
-      lessonSlug: "lesson-joins",
+      remedialSlug: "lesson-joins",
       title: "JOIN types drill",
       href: "/roadmap",
     });
@@ -543,7 +543,7 @@ describe("revision backlog", () => {
     expect(analytics.learningActivity.revisionBacklog).toEqual([
       {
         skillSlug: "python-basics",
-        lessonSlug: null,
+        remedialSlug: null,
         title: "list slicing",
         reason: "Missed inside Python basics, which otherwise looks solid.",
         href: "/tutor",

@@ -19,7 +19,7 @@ export const SESSION_PRESETS = [
     mode: "focused",
     minutes: 45,
     label: "Focused session",
-    description: "A 45-minute block for a lesson and practice.",
+    description: "A 45-minute block for study and practice.",
   },
   {
     mode: "project",

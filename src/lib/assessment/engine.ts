@@ -24,6 +24,7 @@ import {
   type AssessmentConstraints,
   type AssessmentEvaluation,
   type AssessmentSection,
+  type AssessmentSummary,
   type ConfidenceLevel,
   type ConfidenceMismatch,
   type DemonstratedLevel,
@@ -695,7 +696,7 @@ export function evaluateAssessment(
           skill.level === "none"
             ? "no demonstrated evidence yet"
             : "foundation partly demonstrated"
-        }; start with the remedial task before advanced work.`,
+        }; the plan marks the tasks that cover it as foundation work before advanced work.`,
     );
 
   const applicationGaps = skills
@@ -749,14 +750,19 @@ export function evaluateAssessment(
   return { ok: true, evaluation };
 }
 
-export function getRemedialLessons(evaluation: AssessmentEvaluation) {
+/**
+ * Every remedial topic this result named, once each. The slug is a label from
+ * the question bank — there is no lesson row behind it, so no caller may link
+ * to it as though a page existed.
+ */
+export function getRemedialLessons(summary: AssessmentSummary) {
   const seen = new Set<string>();
-  return evaluation.summary.sections
+  return summary.sections
     .flatMap((section) => section.skills)
     .flatMap((skill) => (skill.remedial ? [skill.remedial] : []))
-    .filter((lesson) => {
-      if (seen.has(lesson.slug)) return false;
-      seen.add(lesson.slug);
+    .filter((topic) => {
+      if (seen.has(topic.slug)) return false;
+      seen.add(topic.slug);
       return true;
     });
 }

@@ -36,6 +36,10 @@ import {
   NINETY_DAY_BLUEPRINT,
 } from "@/lib/roadmap/blueprint";
 import { SKILLS } from "@/lib/skills/catalog";
+import {
+  ACCOUNT_DATA_TABLES,
+  CASCADE_ONLY_TABLES,
+} from "@/lib/workspace/tables";
 
 export const metadata: Metadata = {
   title: "CareerForge AI — Learn deliberately, choose with evidence",
@@ -69,7 +73,7 @@ const liveFeatures = [
   {
     icon: CirclePlay,
     title: "Daily dashboard and sessions",
-    body: "Today's objective, lesson, exercise, knowledge check, revision, and rescheduling — with recorded study time only after a session is finished.",
+    body: "Today's objective with each task's own learn, exercise and revision text, plus rescheduling. A knowledge check reveals its answer rather than scoring you, and study time is recorded only once a session is finished.",
     note: "No fabricated activity",
   },
   {
@@ -120,13 +124,19 @@ const liveFeatures = [
     body: "Responsive navigation, accessible components, loading and empty states, and honest phase labels on unfinished areas.",
     note: "No fake dashboards",
   },
+  {
+    icon: ShieldCheck,
+    title: "Deletion that is proven, not promised",
+    body: "Clearing your learning data and closing the whole account are separate workflows behind a confirmation phrase, and a test reads every migration to fail the build if a table that carries your user id is missing from the delete list. The same policies are exercised by a two-account security probe run against a real Postgres server.",
+    note: `Closes ${ACCOUNT_DATA_TABLES.length} record sets plus ${CASCADE_ONLY_TABLES.length} child tables`,
+  },
 ];
 
 const nextPhases = [
   {
-    phase: 7,
-    title: "Quality and deployment",
-    body: "Application materials are built: three documents, provenance on every line, and your own saved wording kept with the records it was written against. What remains is security boundary tests, failure-state coverage, mobile checks, deleting your whole account, and setup documents for running this against a live project.",
+    phase: 8,
+    title: "Lesson reader and scored quizzes",
+    body: "Each roadmap task carries its own learn, exercise and check text, but there is no lesson page to read and no standalone quiz that records a score. The tables, row-level security policies and export paths for both already exist; the content and the screens that would write to them do not, so nothing here claims a topic has been taught or tested.",
   },
 ];
 
@@ -203,7 +213,7 @@ export default async function HomePage() {
         <section className="relative mx-auto grid w-full max-w-6xl gap-12 px-4 pb-20 pt-10 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:pt-16">
           <div className="space-y-8">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="accent">Phase 6 application materials</Badge>
+              <Badge variant="accent">Phase 7 security verified</Badge>
               <Badge variant="outline">Built for one real learner</Badge>
             </div>
 
@@ -397,7 +407,7 @@ export default async function HomePage() {
                 invented progress or simulated AI output.
               </p>
             </div>
-            <Badge variant="success">Phases 1 to 5 implemented</Badge>
+            <Badge variant="success">Phases 1 to 7 implemented</Badge>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -550,7 +560,10 @@ export default async function HomePage() {
                 daily learning loop that records only real sessions, an AI Tutor
                 and Prompt Studio that are honest about demo mode, a project lab
                 that credits only linked work, and career, industry and interview
-                screens that say where their information comes from.
+                screens that say where their information comes from. What it does
+                not have is a lesson reader or a scored quiz — each roadmap task
+                carries its own session text instead, and that gap is listed
+                under Build status rather than papered over.
               </p>
             </div>
             <Link href={primaryHref} className={buttonStyles({ size: "lg" })}>
@@ -567,7 +580,7 @@ export default async function HomePage() {
             <Logo href="/" compact />
             <span>CareerForge AI</span>
             <span className="rounded-full border border-border px-2 py-0.5 text-[0.625rem] uppercase tracking-wider">
-              Phase 6
+              Phase 7
             </span>
           </div>
           <p>

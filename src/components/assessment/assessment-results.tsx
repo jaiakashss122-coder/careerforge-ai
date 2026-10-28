@@ -32,6 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   getConfidenceLabel,
   getDemonstratedLevelLabel,
+  getRemedialLessons,
   getSectionLabel,
 } from "@/lib/assessment/engine";
 import type {
@@ -163,14 +164,7 @@ export function AssessmentResults({
   }
 
   const { summary } = record;
-  const remedial = Array.from(
-    new Map(
-      summary.sections
-        .flatMap((section) => section.skills)
-        .flatMap((skill) => (skill.remedial ? [skill.remedial] : []))
-        .map((lesson) => [lesson.slug, lesson]),
-    ).values(),
-  );
+  const remedial = getRemedialLessons(summary);
   const topRecommendations = summary.careerRecommendations.slice(0, 3);
   const overall = summary.overall;
 
@@ -393,8 +387,10 @@ export function AssessmentResults({
             <CardTitle>Section detail and remedial steps</CardTitle>
           </div>
           <CardDescription>
-            Every missed concept points to the exact lesson the roadmap starts
-            with. Advanced work stays gated until the prerequisite is done.
+            Each missed concept is matched to the topic this app treats as its
+            foundation. Your roadmap then marks the tasks covering that skill as
+            foundation work, and advanced tasks stay locked until their
+            prerequisite is complete.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -594,23 +590,28 @@ export function AssessmentResults({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Remedial lessons queued</CardTitle>
+              <CardTitle className="text-sm">Remedial topics named</CardTitle>
+              <CardDescription>
+                Your result points at these topics. This app has no lesson pages
+                to read yet, so the work happens in your roadmap tasks and with
+                the tutor.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {remedial.length > 0 ? (
                 <ul className="space-y-2">
-                  {remedial.map((lesson) => (
+                  {remedial.map((topic) => (
                     <li
-                      key={lesson.slug}
+                      key={topic.slug}
                       className="rounded-lg border border-border bg-background/40 px-3 py-2 text-xs text-muted-strong"
                     >
-                      {lesson.title}
+                      {topic.title}
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="text-xs leading-5 text-muted">
-                  No remedial lesson was triggered by this screen. The roadmap
+                  No remedial topic was triggered by this screen. The roadmap
                   still begins with an application exercise rather than assuming
                   mastery.
                 </p>
@@ -620,8 +621,8 @@ export function AssessmentResults({
                   aria-hidden="true"
                   className="mt-0.5 size-3 shrink-0 text-success"
                 />
-                Lessons are recommendations from this result. They are not
-                marked complete until you actually do the work.
+                These topics come from this result alone. Nothing here counts as
+                complete until you record doing the work.
               </p>
             </CardContent>
           </Card>

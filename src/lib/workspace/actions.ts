@@ -39,9 +39,11 @@ import {
 } from "@/lib/sessions/types";
 import { getAuthenticatedContext } from "@/lib/workspace/server";
 import {
-  ACCOUNT_CLOSURE_CONFIRM_WORD,
+  DELETION_SCOPES,
+  deleteOwnedRows,
+} from "@/lib/workspace/deletion";
+import {
   ACCOUNT_USER_ID_TABLES,
-  LEARNING_DATA_CONFIRM_WORD,
   LEARNING_DATA_TABLES,
 } from "@/lib/workspace/tables";
 import type {
@@ -586,35 +588,34 @@ export async function deleteLearningDataAction(
 ): Promise<DeleteLearningDataResult> {
   const context = await getAuthenticatedContext();
   if (!context) {
-    return {
-      ok: false,
-      message: "Deleting learning data requires a signed-in account.",
-    };
+    return { ok: false, message: DELETION_SCOPES.learning.requiresAccount };
   }
 
-  if (confirmation !== LEARNING_DATA_CONFIRM_WORD) {
-    return {
-      ok: false,
-      message: `Type ${LEARNING_DATA_CONFIRM_WORD} to confirm removing your learning data.`,
-    };
+  if (confirmation !== DELETION_SCOPES.learning.confirmWord) {
+    return { ok: false, message: DELETION_SCOPES.learning.wrongPhrase };
   }
 
   const { supabase, userId } = context;
 
-  for (const table of LEARNING_DATA_TABLES) {
-    const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq("user_id", userId);
+  const outcome = await deleteOwnedRows(
+    LEARNING_DATA_TABLES,
+    async (table) => {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq("user_id", userId);
 
-    if (error) {
+      if (!error) return false;
       console.error(`Learning data delete failed (${table}):`, error.code);
-      return {
-        ok: false,
-        message:
-          "Not all learning data could be deleted. Your profile was not touched; please retry.",
-      };
-    }
+      return true;
+    },
+  );
+
+  if (!outcome.ok) {
+    return {
+      ok: false,
+      message: DELETION_SCOPES.learning.stoppedAt(outcome.stoppedAt),
+    };
   }
 
   revalidateWorkspace();
@@ -639,34 +640,34 @@ export async function deleteAccountAction(
 ): Promise<DeleteAccountResult> {
   const context = await getAuthenticatedContext();
   if (!context) {
-    return {
-      ok: false,
-      message: "Closing an account requires a signed-in account.",
-    };
+    return { ok: false, message: DELETION_SCOPES.account.requiresAccount };
   }
 
-  if (confirmation !== ACCOUNT_CLOSURE_CONFIRM_WORD) {
-    return {
-      ok: false,
-      message: `Type ${ACCOUNT_CLOSURE_CONFIRM_WORD} to confirm closing this account.`,
-    };
+  if (confirmation !== DELETION_SCOPES.account.confirmWord) {
+    return { ok: false, message: DELETION_SCOPES.account.wrongPhrase };
   }
 
   const { supabase, userId } = context;
 
-  for (const table of ACCOUNT_USER_ID_TABLES) {
-    const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq("user_id", userId);
+  const outcome = await deleteOwnedRows(
+    ACCOUNT_USER_ID_TABLES,
+    async (table) => {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq("user_id", userId);
 
-    if (error) {
+      if (!error) return false;
       console.error(`Account closure failed (${table}):`, error.code);
-      return {
-        ok: false,
-        message: `Not everything could be deleted, and the attempt stopped at ${table}. Nothing signed you out; retry, or delete the learning data instead.`,
-      };
-    }
+      return true;
+    },
+  );
+
+  if (!outcome.ok) {
+    return {
+      ok: false,
+      message: DELETION_SCOPES.account.stoppedAt(outcome.stoppedAt),
+    };
   }
 
   // Last, because every screen that is not this one sends a signed-in account

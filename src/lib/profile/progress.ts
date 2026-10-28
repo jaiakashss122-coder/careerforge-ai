@@ -50,7 +50,7 @@ export function getProfileChecklist(profile: ProfileInput): ProfileChecklist {
     {
       id: "preferences",
       label: "Learning preferences",
-      description: "How you want lessons and exercises presented.",
+      description: "How you want each session explained and practised.",
       complete: profile.learningPreferences.length > 0,
       required: true,
     },

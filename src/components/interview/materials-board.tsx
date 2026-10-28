@@ -99,7 +99,7 @@ export function MaterialsBoard({
                   href="/roadmap"
                   className={buttonStyles({ variant: "secondary", size: "sm" })}
                 >
-                  Find the lesson in your roadmap
+                  Open your roadmap
                 </Link>
                 <Link
                   href="/tutor"

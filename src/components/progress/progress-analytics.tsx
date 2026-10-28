@@ -516,7 +516,7 @@ export function ProgressAnalyticsView({
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">
                 <StatBlock
-                  label="Lessons done"
+                  label="Learning steps"
                   value={String(learningActivity.learningTasksCompleted)}
                 />
                 <StatBlock
@@ -633,12 +633,18 @@ export function ProgressAnalyticsView({
                         {item.title}
                       </p>
                       <FieldHint>{item.reason}</FieldHint>
-                      {!item.lessonSlug ? (
+                      {item.remedialSlug ? (
+                        <FieldHint>
+                          Your result names this topic, but there is no lesson
+                          page to open yet. The roadmap holds the tasks that
+                          cover this skill.
+                        </FieldHint>
+                      ) : (
                         <FieldHint>
                           Opens the AI Tutor with an empty box — type or paste
                           this topic there.
                         </FieldHint>
-                      ) : null}
+                      )}
                     </div>
                     <Link
                       href={item.href}
@@ -647,7 +653,7 @@ export function ProgressAnalyticsView({
                         size: "sm",
                       })}
                     >
-                      {item.lessonSlug ? "Open in roadmap" : "Ask the tutor"}
+                      {item.remedialSlug ? "Open your roadmap" : "Ask the tutor"}
                       <span className="sr-only">: {item.title}</span>
                       <ArrowRight aria-hidden="true" className="size-3.5" />
                     </Link>

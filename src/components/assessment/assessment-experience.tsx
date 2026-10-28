@@ -294,7 +294,7 @@ export function AssessmentExperience({
                 },
                 {
                   title: "Follow-up only",
-                  body: "Foundational evidence. The plan starts with a remedial lesson.",
+                  body: "Foundational evidence. The plan marks the tasks covering this skill as foundation work.",
                 },
                 {
                   title: "Confidence separate",

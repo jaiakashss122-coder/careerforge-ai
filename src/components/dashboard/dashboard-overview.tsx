@@ -487,8 +487,8 @@ export function DashboardOverview({
               <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
                 A short screen across Python, SQL, statistics, data work, and
                 software foundations. Incorrect answers surface the underlying
-                concept and a remedial lesson instead of silently lowering a
-                score.
+                concept and name the topic to reopen, instead of silently
+                lowering a score.
               </p>
               <ul className="mt-5 grid gap-2 text-xs leading-5 text-muted-strong sm:grid-cols-2">
                 {[
@@ -526,7 +526,7 @@ export function DashboardOverview({
                 Why this comes first
               </p>
               <p className="mt-3 text-sm leading-6 text-muted-strong">
-                Lessons, roadmap tasks, and career recommendations must be based
+                The roadmap, its tasks, and career recommendations must be based
                 on demonstrated evidence. Until the assessment is complete, the
                 dashboard would only be guessing.
               </p>
@@ -729,7 +729,7 @@ export function DashboardOverview({
             ? `Welcome back, ${greetingName}`
             : "Your honest daily workspace"
         }
-        description="One objective at a time, with its lesson, exercise, knowledge check, and revision. Study time is recorded only when you start and finish a session."
+        description="One objective at a time, with its learning steps, exercise, knowledge check, and revision. Study time is recorded only when you start and finish a session."
         actions={headerActions}
       />
 

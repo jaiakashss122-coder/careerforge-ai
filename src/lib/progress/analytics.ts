@@ -351,26 +351,26 @@ function buildLearningActivity(
   ) ?? []) {
     if (skill.level === "intermediate") continue;
 
-    const lesson = skill.remedial;
+    const remedial = skill.remedial;
 
-    if (lesson && !backlogByLesson.has(lesson.slug)) {
-      backlogByLesson.set(lesson.slug, {
+    if (remedial && !backlogByLesson.has(remedial.slug)) {
+      backlogByLesson.set(remedial.slug, {
         skillSlug: skill.skillSlug,
-        lessonSlug: lesson.slug,
-        title: lesson.title,
+        remedialSlug: remedial.slug,
+        title: remedial.title,
         reason: revisionReason(skill),
         href: "/roadmap",
       });
     }
 
-    if (!lesson) {
+    if (!remedial) {
       for (const missed of skill.missedConcepts) {
         const lessonKey = `concept:${missed}`;
 
         if (!backlogByLesson.has(lessonKey)) {
           backlogByLesson.set(lessonKey, {
             skillSlug: skill.skillSlug,
-            lessonSlug: null,
+            remedialSlug: null,
             title: missed,
             reason: `Missed inside ${skill.skillName}, which otherwise looks solid.`,
             href: "/tutor",

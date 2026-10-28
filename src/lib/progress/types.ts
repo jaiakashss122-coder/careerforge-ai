@@ -54,7 +54,12 @@ export type RepeatedMistake = {
 
 export type RevisionBacklogItem = {
   skillSlug: string | null;
-  lessonSlug: string | null;
+  /**
+   * The remedial topic this app names for a missed concept. It is written
+   * content in the question bank, not a row in any table and not a task on the
+   * roadmap, so no screen may promise it as a lesson to open.
+   */
+  remedialSlug: string | null;
   title: string;
   reason: string;
   href: string;

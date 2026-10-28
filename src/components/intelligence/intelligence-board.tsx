@@ -456,12 +456,22 @@ export function IntelligenceBoard({
           <p className="text-xs leading-5 text-muted">{INTELLIGENCE_DISCLAIMER}</p>
 
           <div className="flex flex-wrap gap-3 pt-1">
-            <Link href="/tutor" className={buttonStyles({ size: "sm" })}>
+            <Link
+              href="/tutor"
+              className={buttonStyles({
+                size: "sm",
+                className: "h-auto max-w-full whitespace-normal py-2 leading-5",
+              })}
+            >
               Work through one of these in the tutor
             </Link>
             <Link
               href="/prompts"
-              className={buttonStyles({ variant: "outline", size: "sm" })}
+              className={buttonStyles({
+                variant: "outline",
+                size: "sm",
+                className: "h-auto max-w-full whitespace-normal py-2 leading-5",
+              })}
             >
               Build a prompt around it
             </Link>

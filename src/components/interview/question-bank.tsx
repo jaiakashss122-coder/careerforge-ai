@@ -75,7 +75,7 @@ function QuestionRow({
         <p className="min-w-0 flex-1 text-sm font-semibold leading-6 text-foreground">
           {question.prompt}
         </p>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {latest ? (
             <Badge variant={RATING_VARIANT[latest.rating]}>
               Last rated: {ANSWER_RATING_META[latest.rating].label}

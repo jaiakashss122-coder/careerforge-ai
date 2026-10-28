@@ -295,7 +295,7 @@ export function AppShell({ mode, email, initialProfile, children }: ShellProps) 
             </span>
             <Link
               href="/settings#environment"
-              className="font-semibold text-warning underline-offset-4 hover:underline"
+              className="self-center rounded-lg px-2 py-1 font-semibold text-warning underline-offset-4 hover:bg-surface-raised hover:text-foreground hover:underline"
             >
               Setup steps
             </Link>

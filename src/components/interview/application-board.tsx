@@ -92,7 +92,7 @@ function SkillPositionRow({ position }: { position: SkillPosition }) {
           {position.evidencedAs ? (
             <button
               type="button"
-              className="text-xs font-medium text-muted-strong underline decoration-dotted"
+              className="rounded-md px-1.5 py-1 text-xs font-medium text-muted-strong underline decoration-dotted hover:bg-surface-raised hover:text-foreground"
               onClick={() => setOpen((current) => !current)}
               aria-expanded={open}
             >

@@ -441,10 +441,10 @@ export function TutorExperience({
         </Alert>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
-        <Card className="h-fit">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+        <Card className="h-fit min-w-0">
           <CardHeader className="flex-row items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Conversations</CardTitle>
               <CardDescription>
                 {conversationList.length} saved in{" "}
@@ -495,7 +495,7 @@ export function TutorExperience({
           </CardContent>
         </Card>
 
-        <Card className="flex min-h-[34rem] flex-col">
+        <Card className="flex min-h-[34rem] min-w-0 flex-col">
           <CardHeader className="gap-4 border-b border-border/70">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
@@ -516,8 +516,8 @@ export function TutorExperience({
               ) : null}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
+              <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="tutor-mode">Teaching mode</Label>
                 <Select
                   id="tutor-mode"
@@ -533,7 +533,7 @@ export function TutorExperience({
                   ))}
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="tutor-task">Roadmap task context (optional)</Label>
                 <Select
                   id="tutor-task"
@@ -568,7 +568,7 @@ export function TutorExperience({
             ) : null}
 
             <div
-              className="flex-1 space-y-4 overflow-y-auto pr-1"
+              className="min-w-0 flex-1 space-y-4 overflow-y-auto pr-1"
               aria-live="polite"
             >
               {loadingConversation ? (

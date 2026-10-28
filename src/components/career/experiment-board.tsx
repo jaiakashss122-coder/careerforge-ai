@@ -159,7 +159,7 @@ function ExperimentRow({
           </p>
           <p className="text-sm leading-6 text-muted">{definition.brief}</p>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className="flex min-w-0 flex-col items-end gap-2">
           <Badge variant={STATUS_VARIANT[status]}>
             {CAREER_EXPERIMENT_STATUS_LABELS[status]}
           </Badge>

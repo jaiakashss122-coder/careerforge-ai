@@ -58,9 +58,9 @@ export default async function OnboardingPage() {
         className="grid-backdrop pointer-events-none absolute inset-x-0 top-0 h-96 opacity-50"
       />
 
-      <header className="relative mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
+      <header className="relative mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-5 sm:px-6">
         <Logo href={viewer.mode === "preview" ? "/" : "/dashboard"} />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Badge variant={viewer.mode === "preview" ? "warning" : "success"}>
             {viewer.mode === "preview" ? "Preview mode" : "Private account"}
           </Badge>

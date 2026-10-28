@@ -163,6 +163,7 @@ export function DraftPanel({
         <Button
           size="sm"
           variant="ghost"
+          className="h-auto max-w-full justify-start whitespace-normal py-2 text-left leading-5"
           disabled={content.trim() === generatedText.trim()}
           onClick={() => setContent(generatedText)}
         >

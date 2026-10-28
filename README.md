@@ -195,7 +195,7 @@ Never put a service-role key in this project. The app never reads one. The anon/
 
 Why off locally:
 
-- The checklist below is run with two accounts and needs each one signed in before the next step. With confirmation on, sign-up returns no session until a link is clicked, so every one of the 34 items waits on an inbox.
+- The checklist below is run with two accounts and needs each one signed in before the next step. With confirmation on, sign-up returns no session until a link is clicked, so every one of the 35 items waits on an inbox.
 - Supabase's built-in sender is rate-limited and intended for development, so a confirmation mail that never arrives blocks testing in a way that looks like an app bug and is not one.
 - Nothing about the app's behavior depends on the toggle. `signUpAction` already branches: when Supabase hands back a session it redirects into onboarding, and when it does not it returns "Account created. Check your inbox and confirm your email address, then sign in to continue." `/auth/callback` exchanges the confirmation code for a session and redirects only to a validated internal path. Turning the toggle on later is therefore a configuration change, not a code change.
 
@@ -241,6 +241,7 @@ These checks are required before treating a deployment as verified, because Supa
 32. On the throwaway account, open `/settings` → "Close this account", confirm the button stays disabled until `CLOSE ACCOUNT` is typed exactly, and confirm a wrong word is refused server-side with the wording of the requirement rather than deleting anything.
 33. Confirm closure leaves zero rows for that user id in all 18 record sets and zero cascade children (`assessment_answers`, `project_milestones`, `roadmap_tasks`, `roadmap_task_prerequisites`, `tutor_messages`), that `public.skills` still holds 36 rows, and that the second account's rows are untouched — this is the check that would expose a delete list that drifted from the schema.
 34. Confirm the result screen states the remaining step instead of hiding it: the `auth.users` row is still there, the SQL shown carries the closed account's own id, the dashboard path is named, signing back in restarts onboarding rather than restoring the old workspace, and "Sign out now" ends the session.
+35. Measure `/sign-in`, `/sign-up`, `/account/close` and the closure result at 320 px and 390 px wide. Preview mode redirects all four, so they are the only screens the narrow-viewport sweep in Phase 7c could not reach, and a hosted project is where their horizontal fit and tap targets get checked.
 
 The verification checklist above needs a hosted project. This section needs a local PostgreSQL server instead, and it is the only way the row-level-security claims in this repository have actually been executed anywhere.
 
@@ -385,14 +386,55 @@ These QA passes use the app's own Browser tool, which is attached to no visible 
 
 ## Deployment
 
-The application can be deployed to any platform that supports Next.js 16 and Node.js 20.9+; Vercel is the simplest target. Supabase provides the database and authentication.
+Any host that runs Next.js 16.4.3 on Node.js 20.9 or newer works; Vercel is the simplest target and the steps below are written in its terms. Supabase provides the database and authentication. This is a runbook, not a list of clicks — each step says what it prevents.
 
-1. Create separate Supabase projects for development and production if possible.
-2. Apply all eight migrations to the production project, in filename order.
-3. Add the production Site URL and `/auth/callback` redirect URL in Supabase Authentication settings.
-4. Import the repository into the hosting provider and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the production environment.
-5. Add `AI_PROVIDER`, `AI_MODEL`, and `AI_API_KEY` as **server-only** production variables if live AI is desired. Do not expose them to the client bundle.
-6. Build, deploy, sign up, confirm email, then run the verification checklist above with two accounts.
+### What the build produces, and what that rules out
+
+`npm run build` compiles with Turbopack and leaves every application route dynamic (`ƒ`) — 21 of the 22 routes, `/_not-found` being the prerendered exception — because the pages read the signed-in account through server components and the writes go through server actions. There is no static export: the target has to run a Node server that forwards cookies, so a plan that only serves files from a CDN cannot host this app. `src/proxy.ts` runs on every request that is not a static asset, refreshing the session and enforcing the route guards, and it calls `auth.getUser()` on the way — one Supabase auth round trip per uncached request. That is what makes a signed-out visitor and a stale cookie behave the same on every route, and it is also a real per-request cost to expect in the host's function timings.
+
+The `turbopack.rules` entry in `next.config.ts` is how the Tailwind v4 loader reaches the compiler, and it applies to the production build as well as to `next dev` — it is not a development-only convenience, so leave it in place when trimming configuration.
+
+### One Supabase project per environment, because `NEXT_PUBLIC_*` is baked in
+
+`NEXT_PUBLIC_SUPABASE_URL` and the anon/publishable key are inlined into the bundle at build time, so a single build belongs to exactly one Supabase project. If preview deployments reuse the production values, a preview URL talks to the production database, shares its auth audience and its `sb-<project-ref>-auth-token*` cookies, and a test session on that URL is a session on real data. Either give previews their own development project or turn preview deploys off. Changing a `NEXT_PUBLIC_*` value means a new build, not a restart.
+
+### Variables, and what each one does when it is absent
+
+| Variable | Reaches the browser? | Required | Behaviour when absent |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | For accounts | The app runs in clearly labeled local preview mode; data lives in that browser only |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | For accounts | As above. This key is public by design; authorization is enforced by row-level security, not by secrecy |
+| `NEXT_PUBLIC_SITE_URL` | Yes | No | The fallback origin for confirmation links. `getSiteOrigin()` prefers the request's `x-forwarded-host` and `x-forwarded-proto` headers, which a normal host such as Vercel sets, and only reaches for this variable when no host header arrived — where it would otherwise build a `http://localhost:3000` link. Set it to the https origin so the fallback is never wrong |
+| `AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`, `AI_BASE_URL` | **No — server-only** | No | AI Tutor and Prompt Studio run in demo mode and label every reply as demo |
+
+A key without a model, an unsupported provider or an invalid base URL produces an explicit misconfiguration error and sends no request; nothing pretends to be live AI. **Never add a service-role key.** The application never reads one, and a key in any `NEXT_PUBLIC_*` variable is public by definition — if one is ever pasted there, rotate it in the Supabase dashboard and redeploy rather than waiting for a cache to clear.
+
+### Supabase project settings
+
+1. Apply the eight migration files in filename order, in the SQL editor or with the CLI. Afterwards run the counting query in "Connect Supabase" and expect **24 tables** and **90 policies**. Never edit a migration that has already been applied — add a new file.
+2. Authentication → URL configuration: set Site URL to the exact origin, including `https://` and no trailing path, and add `https://<host>/auth/callback` to Additional Redirect URLs (plus `http://localhost:3000/auth/callback` on the development project). `/auth/callback` exchanges the PKCE code for a session and then redirects only to a path that passes `safeNextPath`, so an off-site `?next=` value falls back to onboarding instead of leaving the site.
+3. Authentication → Sign In / Up: leave **Confirm emails** off on the project you develop against, for the reasons in "Email confirmation: the decision for local testing". Turn it on for any project that will hold another person's records, and configure SMTP if the mail should come from your own domain — Supabase's built-in sender is rate-limited and meant for development.
+4. Confirm the `on_auth_user_created` trigger fired: after the first production sign-up there must be one `profiles` row. If there is none, the migrations went in out of order or only partway.
+
+### On the hosting provider
+
+1. Import the repository; the framework is detected as Next.js, with `npm run build` and `npm start`.
+2. Select Node.js 22 or 24 for the runtime.
+3. Add the variables above, separated by environment (Production, Preview, Development), and re-deploy after any change to a `NEXT_PUBLIC_*` value.
+4. Deploy, then re-check the origin in Supabase's URL configuration against the live address character for character.
+5. Add a custom domain to both the host and Supabase's Site URL and redirect list before inviting anyone, and re-run the checks below after the address changes.
+
+### After deploying, before calling it live
+
+- Run the 35-item verification checklist in "Verify a Supabase connection" against the production project with two accounts.
+- `/sign-in`, `/sign-up`, `/account/close` and the closure result are the four screens preview mode redirects away, so their narrow-viewport pass happens here: measure them at 320 px and 390 px, as was done for the sixteen screens that do render locally.
+- Open the deployed app on a phone once, so the drawer navigation is exercised on hardware and not only inside a simulated frame.
+- Close a throwaway account end to end and confirm the result screen's instructions for the remaining `auth.users` row are accurate and work.
+- Confirm `/settings/export` offers only the signed-in account's rows, that `ai_usage_events` rows appear after AI actions, and that the demo-versus-live labelling on `/tutor` matches the variables that were actually deployed.
+
+### Updating a live deployment
+
+Migrations are forward-only here, and a screen from a newer phase can reference a column an older schema does not have — so apply the new files in filename order **before** promoting the build that reads them. Keep the previous build available to roll back to; rolling back does not undo an applied migration, which is safe when the migration only adds a table, a column or a policy, and needs an explicit paired revert when it changes what an existing column means. The app logs a Supabase `error.code` or `error.name` and never a token, so anything resembling a session string in the provider's logs means a variable was misused rather than that this is normal.
 
 Hosting and database providers change their plans, limits, and pricing. Check the current Supabase, Vercel, and AI provider pricing pages before choosing a plan. Demo mode remains fully functional without a paid AI provider.
 
@@ -427,5 +469,6 @@ Phases 1 to 6 are complete and most of Phase 7 is: all twelve navigation destina
 - **Failure-state coverage and honest copy are built (Phase 7b).** `src/lib/workspace/deletion.ts` holds the table-by-table loop and every sentence the two destructive workflows say, so the phrase a screen shows and the phrase the server demands cannot drift apart; 10 tests drive the loop with a fake delete and prove it stops at the first failing table, names it, and never promises a profile it did not keep. `src/lib/ai/provider.test.ts` adds 19 more, driving each transport failure — 429, a rejected credential, 5xx with and without a successful retry, a hang, an unreachable host, a non-JSON body, six unusable payloads — and pinning the request it sends. The copy that leaned on unbuilt features now says what exists: a remedial topic is a topic this app names, not a lesson the roadmap starts with, the Progress backlog states there is no page to open, and the landing page lists the lesson reader and the scored quiz as not built.
 - **Narrow-viewport checks are done (Phase 7c).** Sixteen screens were measured at 320 px, 390 px and 768 px wide — `/`, `/dashboard`, `/assessment`, `/assessment/results/[id]`, `/roadmap`, `/roadmap/new`, `/tutor`, `/prompts`, `/projects`, `/careers`, `/intelligence`, `/interview`, `/materials`, `/progress`, `/settings` and `/onboarding` — and each now reports a horizontal scroll width equal to its viewport width, so nothing needs sideways scrolling on a phone. Six real defects were found and fixed: the tutor's conversation list and its two selects forced the card to 507 px because a `truncate` span and a native `<select>` sit inside grid items whose minimum width defaults to their content, so those items now declare `min-w-0` and the grid columns `minmax(0,1fr)`; the Application Materials "Put the text this app generated into this box" button could not wrap because the shared button style sets `whitespace-nowrap`, so it now wraps inside a fixed-width box; the Career Explorer's action column and the interview question bank's rating row were `shrink-0`, which refuses to give way when a nowrap button no longer fits, so both now shrink; two long button-styled links on Industry Intelligence wrap instead of overflowing; and the onboarding header now wraps its badge and link rather than pushing past the viewport. Tap targets were measured in the same pass: no control on any of those screens is smaller than 24×24 CSS pixels except links set inside a sentence (`/intelligence` source lines, the preview-mode banners) and the checkboxes in the profile form, which sit inside a full-row `<label>` that toggles them — both are the exceptions WCAG 2.5.8 states for inline and label-provided targets, and the mobile menu's open button, close button and all 15 drawer links clear 24 px outright. The mobile drawer itself was driven end to end at 390 px: it opens as a native `<dialog>`, locks body scroll, marks the current page with `aria-current`, closes on its own button and releases the scroll lock, and a link inside it navigates to the right screen.
   Two honesty notes about that method. The widths were simulated with same-origin iframes because the automation harness has no viewport-resize capability, so media queries, layout and hit areas are measured as a phone would render them but no physical device was used. And the browser's own Escape key on a modal dialog could not be exercised — a synthetic key event does not reach a dialog inside a simulated frame — so the close path was verified through the drawer's own close button, which runs the same `onClose` handler Escape would.
-- **Next: the rest of Phase 7** — the deployment documentation plus the two-account verification run against a live Supabase project, which is the one thing no local harness can stand in for. Four screens still need their narrow-viewport pass because preview mode redirects them away and they can only render once Supabase is configured: `/sign-in`, `/sign-up`, `/account/close` and the closure result.
+- **Deployment is documented (Phase 7d, documentation half).** The section above is a runbook rather than a list of clicks: what the build produces and which hosts it therefore rules out, why one build belongs to one Supabase project, what every variable does when it is missing, the four project settings that have to match the deployed origin, what to check before inviting anyone, and how to apply and roll back migrations on a live schema.
+- **Next: the last part of Phase 7** — the two-account verification run against a live Supabase project, which is the one thing no local harness can stand in for. Four screens still need their narrow-viewport pass because preview mode redirects them away and they can only render once Supabase is configured: `/sign-in`, `/sign-up`, `/account/close` and the closure result.
 - Before any of this is called production-ready: apply the eight migrations to a live Supabase project, run the verification checklist with two accounts to confirm one account cannot read another's rows, exercise the AI quotas against a real provider, and re-check the Project Lab, Progress, Career Explorer, Industry Intelligence, Interview Preparation and Application Materials screens in Supabase mode, where the records that drive the labels come from the database instead of this browser.

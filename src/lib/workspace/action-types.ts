@@ -31,3 +31,12 @@ export type StartSessionResult =
 export type DeleteLearningDataResult =
   | { ok: true; message: string }
   | { ok: false; message: string };
+
+/**
+ * `userId` comes back so the screen can name the one row this app cannot
+ * remove — the sign-in held by the authentication service — with the learner's
+ * own id already filled into the step they have to take.
+ */
+export type DeleteAccountResult =
+  | { ok: true; userId: string; message: string }
+  | { ok: false; message: string };

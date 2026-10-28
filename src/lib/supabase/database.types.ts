@@ -571,6 +571,87 @@ export type ApplicationMaterialInsert = {
   built_from?: Json;
 };
 
+/**
+ * Three tables the first migration created and nothing writes yet: a lesson the
+ * roadmap does not carry, a standalone quiz the assessment does not ask, and a
+ * weekly review no screen opens. They are typed because account closure deletes
+ * them, and a delete that names a table has to know its columns.
+ */
+export type LessonRow = {
+  id: string;
+  user_id: string;
+  roadmap_task_id: string | null;
+  title: string;
+  objective: string;
+  content: Json;
+  estimated_minutes: number | null;
+  status: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LessonInsert = {
+  id?: string;
+  user_id: string;
+  roadmap_task_id?: string | null;
+  title: string;
+  objective?: string;
+  content?: Json;
+  estimated_minutes?: number | null;
+  status?: string;
+  completed_at?: string | null;
+};
+
+export type QuizAttemptRow = {
+  id: string;
+  user_id: string;
+  lesson_id: string | null;
+  skill_id: string | null;
+  questions: Json;
+  answers: Json;
+  score: number | null;
+  max_score: number | null;
+  taken_at: string;
+  created_at: string;
+};
+
+export type QuizAttemptInsert = {
+  id?: string;
+  user_id: string;
+  lesson_id?: string | null;
+  skill_id?: string | null;
+  questions?: Json;
+  answers?: Json;
+  score?: number | null;
+  max_score?: number | null;
+  taken_at?: string;
+};
+
+export type WeeklyReviewRow = {
+  id: string;
+  user_id: string;
+  week_start: string;
+  planned_minutes: number | null;
+  actual_minutes: number | null;
+  wins: string;
+  challenges: string;
+  next_focus: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WeeklyReviewInsert = {
+  id?: string;
+  user_id: string;
+  week_start: string;
+  planned_minutes?: number | null;
+  actual_minutes?: number | null;
+  wins?: string;
+  challenges?: string;
+  next_focus?: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -698,6 +779,24 @@ export type Database = {
         Row: ApplicationMaterialRow;
         Insert: ApplicationMaterialInsert;
         Update: Partial<ApplicationMaterialInsert>;
+        Relationships: [];
+      };
+      lessons: {
+        Row: LessonRow;
+        Insert: LessonInsert;
+        Update: Partial<LessonInsert>;
+        Relationships: [];
+      };
+      quiz_attempts: {
+        Row: QuizAttemptRow;
+        Insert: QuizAttemptInsert;
+        Update: Partial<QuizAttemptInsert>;
+        Relationships: [];
+      };
+      weekly_reviews: {
+        Row: WeeklyReviewRow;
+        Insert: WeeklyReviewInsert;
+        Update: Partial<WeeklyReviewInsert>;
         Relationships: [];
       };
     };

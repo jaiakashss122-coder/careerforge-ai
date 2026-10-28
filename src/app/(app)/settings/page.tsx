@@ -4,6 +4,7 @@ import {
   Lock,
   LogOut,
   ShieldCheck,
+  ShieldOff,
   TriangleAlert,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -26,6 +27,11 @@ import { signOutAction } from "@/lib/auth/actions";
 import { getViewer } from "@/lib/auth/viewer";
 import { getAiPublicStatus } from "@/lib/ai/config";
 import { getCurrentProfile } from "@/lib/profile/repository";
+import {
+  ACCOUNT_CLOSURE_CONFIRM_WORD,
+  ACCOUNT_DATA_TABLES,
+  CASCADE_ONLY_TABLES,
+} from "@/lib/workspace/tables";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -34,11 +40,11 @@ export const metadata: Metadata = {
 const setupSteps = [
   {
     title: "Create a Supabase project",
-    body: "The free tier is enough for Phase 1. Copy the Project URL and the anon (or publishable) key from the project's API settings.",
+    body: "The free tier is enough to run the whole application. Copy the Project URL and the anon (or publishable) key from the project's API settings.",
   },
   {
-    title: "Apply the three migration files",
-    body: "Run 20261023000100_initial_schema.sql, then 20261023000200_seed_skills.sql, then 20261024000100_phase3_ai.sql in the SQL editor or with the Supabase CLI. They create the schema, RLS policies, triggers, skill catalogue, and AI provenance/usage tables.",
+    title: "Apply every migration in filename order",
+    body: "Run each file in supabase/migrations/ in filename order, in the SQL editor or with the Supabase CLI, starting with 20261023000100_initial_schema.sql. Together they create the schema, row-level security policies, triggers, the skill catalogue, AI provenance and usage tables, interview preparation, and application material drafts. Later phases add later files, so the order is what matters, not the count.",
   },
   {
     title: "Set the environment variables",
@@ -50,7 +56,7 @@ const setupSteps = [
   },
   {
     title: "Restart and create your account",
-    body: "Restart the dev server, sign up, confirm your email, and finish onboarding. Row-level security scopes every profile read and write to your account.",
+    body: "Restart the dev server, sign up, confirm your email if Supabase's email confirmation is switched on, and finish onboarding. Row-level security scopes every read and write to the signed-in user.",
   },
 ];
 
@@ -173,8 +179,8 @@ export default async function SettingsPage() {
                 <Alert variant="success" title="Connected to Supabase">
                   Accounts, email confirmation, cookie-based sessions, and
                   row-level security are active. If profile or AI saves fail,
-                  confirm all three migration files have run against this
-                  project.
+                  confirm every file in supabase/migrations/ has run against this
+                  project, in filename order.
                 </Alert>
 
                 <ul className="grid gap-3 sm:grid-cols-2">
@@ -252,18 +258,18 @@ export default async function SettingsPage() {
               />
             </div>
 
-            <div className="space-y-2 border-t border-border/70 pt-4">
+            <div className="space-y-3 border-t border-border/70 pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium text-foreground">
-                  Delete account
+                  Close this account
                 </p>
-                <Badge variant="muted">Planned — Phase 7</Badge>
+                <Badge variant="success">
+                  {viewer.mode === "supabase"
+                    ? "Working — deletes your records"
+                    : "Preview mode has no account"}
+                </Badge>
               </div>
-              <p className="text-xs leading-5 text-muted">
-                Full account deletion is not available yet, so no non-working
-                button is shown. Deleting learning data above is available now
-                and keeps the profile and sign-in intact.
-              </p>
+              <AccountClosureEntry mode={viewer.mode} />
             </div>
 
             <div className="border-t border-border/70 pt-4">
@@ -280,8 +286,9 @@ export default async function SettingsPage() {
                     aria-hidden="true"
                     className="mt-0.5 size-3.5 shrink-0 text-muted"
                   />
-                  Signing out and account deletion require Supabase. Preview mode
-                  has no session to end.
+                  Preview mode signs nobody in, so there is no session to end. The
+                  deleting control above is the only exit from a preview
+                  workspace.
                 </p>
               )}
             </div>
@@ -404,6 +411,39 @@ export default async function SettingsPage() {
           variant="settings"
         />
       </section>
+    </div>
+  );
+}
+
+/**
+ * Closure runs on its own screen. Deleting the profile row makes the signed-in
+ * shell redirect to onboarding, and a learner who has just removed everything
+ * must not be bounced away from the instructions that follow the deletion.
+ */
+function AccountClosureEntry({ mode }: { mode: "preview" | "supabase" }) {
+  if (mode === "preview") {
+    return (
+      <p className="text-xs leading-5 text-muted">
+        Preview mode has no account to close. Nothing here was ever sent to a
+        server: the deleting control above removes this browser&apos;s records,
+        and there is no sign-in, email address or password stored anywhere to
+        remove.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs leading-5 text-muted">
+        {`This deletes all ${ACCOUNT_DATA_TABLES.length} record sets this account owns, plus ${CASCADE_ONLY_TABLES.length} child tables that leave through their parent. The sign-in row itself belongs to Supabase's authentication service, and no key this application holds can remove it, so the screen names that one remaining step instead of hiding it. Closing needs the phrase ${ACCOUNT_CLOSURE_CONFIRM_WORD} and cannot be undone.`}
+      </p>
+      <Link
+        href="/account/close"
+        className={buttonStyles({ variant: "outline", size: "sm" })}
+      >
+        <ShieldOff aria-hidden="true" className="size-4" />
+        Start closing this account
+      </Link>
     </div>
   );
 }

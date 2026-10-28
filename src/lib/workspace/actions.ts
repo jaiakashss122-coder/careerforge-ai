@@ -38,8 +38,15 @@ import {
   type SessionMode,
 } from "@/lib/sessions/types";
 import { getAuthenticatedContext } from "@/lib/workspace/server";
+import {
+  ACCOUNT_CLOSURE_CONFIRM_WORD,
+  ACCOUNT_USER_ID_TABLES,
+  LEARNING_DATA_CONFIRM_WORD,
+  LEARNING_DATA_TABLES,
+} from "@/lib/workspace/tables";
 import type {
   CreateRoadmapResult,
+  DeleteAccountResult,
   DeleteLearningDataResult,
   StartSessionResult,
   SubmitAssessmentResult,
@@ -585,31 +592,16 @@ export async function deleteLearningDataAction(
     };
   }
 
-  if (confirmation !== "DELETE") {
+  if (confirmation !== LEARNING_DATA_CONFIRM_WORD) {
     return {
       ok: false,
-      message: "Type DELETE to confirm removing your learning data.",
+      message: `Type ${LEARNING_DATA_CONFIRM_WORD} to confirm removing your learning data.`,
     };
   }
 
   const { supabase, userId } = context;
 
-  for (const table of [
-    "learning_sessions",
-    "learning_roadmaps",
-    "skill_assessments",
-    "user_skill_evidence",
-    "projects",
-    "career_experiments",
-    "career_preferences",
-    "interview_attempts",
-    "mock_interviews",
-    "job_applications",
-    "application_materials",
-    "tutor_conversations",
-    "saved_prompts",
-    "ai_usage_events",
-  ] as const) {
+  for (const table of LEARNING_DATA_TABLES) {
     const { error } = await supabase
       .from(table)
       .delete()
@@ -634,3 +626,76 @@ export async function deleteLearningDataAction(
       "Assessment results, roadmaps, study sessions, projects with their milestones, skill evidence, career experiments with your reflections, your recorded specialization choice, practice interviews with every written answer, saved roles with their pasted posting text, the wording you saved for your résumé, LinkedIn and portfolio, tutor conversations, and saved prompts were deleted. Your profile and account were kept.",
   };
 }
+
+/**
+ * Removes every row this account owns, then stops. The sign-in itself lives in
+ * the authentication service rather than in any table this app can write, and
+ * reaching it would need a service-role key — which this project never holds.
+ * So the honest boundary is stated instead of crossed, and the one step left is
+ * handed to the learner with their own id filled in.
+ */
+export async function deleteAccountAction(
+  confirmation: unknown,
+): Promise<DeleteAccountResult> {
+  const context = await getAuthenticatedContext();
+  if (!context) {
+    return {
+      ok: false,
+      message: "Closing an account requires a signed-in account.",
+    };
+  }
+
+  if (confirmation !== ACCOUNT_CLOSURE_CONFIRM_WORD) {
+    return {
+      ok: false,
+      message: `Type ${ACCOUNT_CLOSURE_CONFIRM_WORD} to confirm closing this account.`,
+    };
+  }
+
+  const { supabase, userId } = context;
+
+  for (const table of ACCOUNT_USER_ID_TABLES) {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error(`Account closure failed (${table}):`, error.code);
+      return {
+        ok: false,
+        message: `Not everything could be deleted, and the attempt stopped at ${table}. Nothing signed you out; retry, or delete the learning data instead.`,
+      };
+    }
+  }
+
+  // Last, because every screen that is not this one sends a signed-in account
+  // without a profile to onboarding, and a half-deleted account should not look
+  // like a brand-new one.
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .delete()
+    .eq("id", userId);
+
+  if (profileError) {
+    console.error("Account closure failed (profiles):", profileError.code);
+    return {
+      ok: false,
+      message:
+        "Your records were deleted but the profile row could not be. Nothing signed you out; retry to finish closing the account.",
+    };
+  }
+
+  revalidateWorkspace();
+  revalidatePath("/tutor");
+  revalidatePath("/prompts");
+  revalidatePath("/settings");
+
+  return {
+    ok: true,
+    userId,
+    message:
+      "Every record this account owned is deleted: your profile, assessments with their answers, roadmaps with their tasks, study sessions, projects with their milestones and links, skill evidence, career experiments with your reflections, your specialization choice, practice interviews with every written answer, saved roles with their posting text, the wording you saved for each application document, tutor conversations, saved prompts and the AI usage counters. You are still signed in, because signing out is the step you should take with the result below in front of you.",
+  };
+}
+

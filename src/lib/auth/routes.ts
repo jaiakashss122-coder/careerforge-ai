@@ -10,8 +10,10 @@ export const PROTECTED_PREFIXES = [
   "/careers",
   "/intelligence",
   "/interview",
+  "/materials",
   "/progress",
   "/settings",
+  "/account",
   "/onboarding",
 ] as const;
 

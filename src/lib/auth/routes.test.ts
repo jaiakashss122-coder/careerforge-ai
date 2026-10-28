@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NAV_ITEMS } from "@/lib/navigation";
 import {
   isAuthRoute,
   isProtectedRoute,
@@ -15,19 +16,16 @@ describe("auth route boundaries", () => {
   });
 
   it("protects every workspace route", () => {
+    /**
+     * The proxy is what keeps an anonymous request off a page that reads the
+     * session, so a destination that is reachable in the navigation has to be in
+     * the protected list too. Reading the list from the navigation means adding
+     * a screen cannot silently skip that step.
+     */
     const routes = [
-      "/dashboard",
-      "/roadmap",
-      "/tutor",
-      "/prompts",
-      "/projects",
-      "/careers",
-      "/intelligence",
-      "/interview",
-      "/progress",
-      "/settings",
+      ...NAV_ITEMS.map((item) => item.href),
       "/onboarding",
-      "/assessment",
+      "/account/close",
     ];
 
     for (const route of routes) {
@@ -37,6 +35,7 @@ describe("auth route boundaries", () => {
     expect(isProtectedRoute("/")).toBe(false);
     expect(isProtectedRoute("/sign-in")).toBe(false);
     expect(isProtectedRoute("/settings-extra")).toBe(false);
+    expect(isProtectedRoute("/account-not-closed")).toBe(false);
   });
 });
 
